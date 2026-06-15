@@ -13,7 +13,7 @@ navbar:
     articles:
       text: Tutorials
       menu:
-      - text: Gaussian simulation tutorial
+      - text: Gaussian inference and count models
         href: articles/vcmoe-gaussian-no-offset.html
     reference:
       text: Reference

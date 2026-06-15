@@ -1,8 +1,8 @@
 ---
-title: "Gaussian VCMoE Simulation Tutorial"
+title: "VCMoE Tutorial: Gaussian Inference and Count Models"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Gaussian VCMoE Simulation Tutorial}
+  %\VignetteIndexEntry{VCMoE Tutorial: Gaussian Inference and Count Models}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -12,20 +12,17 @@ knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
   fig.width = 7,
-  fig.height = 4
+  fig.height = 4.5,
+  message = FALSE,
+  warning = FALSE
 )
 ```
 
-This vignette shows the basic steps for a Gaussian
-varying-coefficient mixture-of-experts model:
-
-1. install and load `VCMoE`;
-2. simulate a small Gaussian example;
-3. fit `vcmoe_fit()`;
-4. inspect coefficient functions, posterior probabilities, and diagnostics.
-
-The example uses `k = 2`, which is the easiest setting for learning the package
-API and checking that the label-alignment diagnostics behave as expected.
+This tutorial gives a compact workflow for using `VCMoE`. The Gaussian example
+is the main walk-through because it shows fitting, diagnostics, coefficient
+plots, analytic simultaneous confidence bands, and bootstrap inference. The
+Binomial and Negative-Binomial examples use the same model interface and focus
+on response format, prediction scale, and diagnostics.
 
 ## Installation from GitHub
 
@@ -38,107 +35,172 @@ remotes::install_github("qc-zhao/VCMoE")
 
 Then load the package:
 
-```{r}
+```{r packages}
 library(VCMoE)
+library(ggplot2)
 ```
 
-## Simulate Gaussian data
+## Gaussian model
 
-`simulate_vcmoe_gaussian()` returns a data frame and the known truth used to
-generate it. The response is Gaussian, while the component-specific expert
-coefficients and gating probabilities vary with the continuous coordinate `u`.
+Simulate a small Gaussian data set with two latent components. The returned
+object contains the observed data and the true coefficient functions.
 
-```{r simulate}
+```{r gaussian-simulate}
+set.seed(1)
+
 sim <- simulate_vcmoe_gaussian(
-  n = 240,
+  n = 180,
   k = 2,
   seed = 1,
-  separation = 1.4,
+  separation = 1.6,
   scenario = "well_separated"
 )
 
 head(sim$data)
-str(sim$truth, max.level = 1)
 ```
 
-## Fit the model
+The model formula has two parts:
 
-The formula has two parts:
+- `y ~ z1` is the component-specific expert mean model;
+- `| x1` is the gating model for component probabilities.
 
-- `y ~ z1` is the expert mean model;
-- `| x1` is the gating model.
+The varying coordinate is supplied through `u = "u"`.
 
-The varying coordinate is supplied separately through `u = "u"`. By default,
-`vcmoe_fit()` uses Epanechnikov density weights, a scaled local-linear basis,
-and unit scaling of `u`.
-
-```{r fit}
+```{r gaussian-fit}
 fit <- vcmoe_fit(
   y ~ z1 | x1,
   data = sim$data,
   u = "u",
   family = "gaussian",
   k = 2,
-  bandwidth = 0.30,
-  u_grid = seq(0.1, 0.9, length.out = 5),
-  control = list(maxit = 80, n_starts = 2, seed = 2)
+  bandwidth = 0.35,
+  u_grid = seq(0.15, 0.85, length.out = 4),
+  control = list(maxit = 60, n_starts = 1, seed = 2, warn_ambiguous = FALSE)
 )
 
 fit
 ```
 
-## Coefficients and predictions
-
 Expert coefficients are returned as an array indexed by grid point, component,
-and term. Posterior probabilities are returned with one column per component.
+and term.
 
-```{r coefficients}
+```{r gaussian-coefficients}
 expert_coef <- coef(fit, "expert")
 dim(expert_coef)
 expert_coef[, , "z1"]
 ```
 
-```{r predictions}
-posterior <- predict(fit, type = "posterior")
-head(posterior)
-rowSums(head(posterior))
+Predictions can be requested as marginal means, posterior component
+probabilities, or component-specific means.
 
-fitted_mean <- predict(fit, type = "mean")
-head(fitted_mean)
+```{r gaussian-predictions}
+head(predict(fit, type = "mean"))
+head(predict(fit, type = "posterior"))
+head(predict(fit, type = "component"))
 ```
 
-## Diagnostics
+## Diagnostics and basic plots
 
-Always inspect diagnostics before interpreting coefficient functions. The most
-important early checks are grid convergence, label ambiguity, component
-proportions, posterior entropy, and effective local sample size.
+Always inspect diagnostics before interpreting coefficient functions.
 
-```{r diagnostics}
+```{r gaussian-diagnostics}
 diagnostics <- vcmoe_diagnostics(fit)
 diagnostics[, c("u", "converged", "ambiguous", "posterior_entropy", "effective_n")]
 ```
 
-## Plots
+`plot_coefficients()` and `plot_posterior()` provide quick visual checks.
 
-`plot_coefficients()` shows the fitted coefficient functions. For a simulated
-example, the plot is mainly a quick visual check that the fitted paths are
-smooth and labels remain connected across the grid.
-
-```{r coefficient-plot}
+```{r gaussian-coefficient-plot}
 plot_coefficients(fit, "expert")
 ```
 
-`plot_posterior()` summarizes posterior component probabilities over `u`.
-
-```{r posterior-plot}
+```{r gaussian-posterior-plot}
 plot_posterior(fit)
 ```
 
-## Optional: bandwidth selection
+## Analytic simultaneous confidence bands
+
+`vcmoe_confband()` computes diagnostic-gated analytic-style Epanechnikov path
+bands. The returned object contains an interval table and grid-level
+diagnostics. Rows with `status != "ok"` are blocked because the local fit is too
+weak for the interval to be interpreted.
+
+```{r gaussian-scb}
+band <- vcmoe_confband(
+  fit,
+  data = sim$data,
+  level = 0.95,
+  type = "simultaneous",
+  coefficient_set = "expert",
+  strict = FALSE
+)
+
+band
+head(band$intervals[, c(
+  "u", "component", "term", "block", "estimate",
+  "lower", "upper", "status", "block_reason"
+)])
+```
+
+For coefficient-function plots, use the local-linear intercept rows. The slope
+rows describe local derivative terms and are not the coefficient functions
+themselves.
+
+```{r gaussian-scb-plot}
+scb_plot <- subset(
+  band$intervals,
+  coefficient_set == "expert" & block == "intercept" & status == "ok"
+)
+
+ggplot(scb_plot, aes(x = u, y = estimate, color = component, fill = component)) +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.18, color = NA) +
+  geom_line(linewidth = 0.8) +
+  facet_wrap(~ term, scales = "free_y") +
+  labs(
+    x = "u",
+    y = "coefficient",
+    color = "component",
+    fill = "component"
+  ) +
+  theme_minimal(base_size = 12)
+```
+
+## Bootstrap inference
+
+Parametric bootstrap inference is also available. Each bootstrap replicate
+simulates a new response from the fitted mixture, refits the same VCMoE model,
+and aligns bootstrap component labels back to the reference fit.
+
+```{r gaussian-bootstrap}
+boot <- vcmoe_bootstrap(
+  fit,
+  data = sim$data,
+  B = 6,
+  seed = 5,
+  min_successful = 2,
+  control = list(maxit = 40, n_starts = 1, warn_ambiguous = FALSE)
+)
+
+boot
+head(confint(boot, parm = "expert", type = "pointwise"))
+```
+
+`plot_inference()` visualizes bootstrap intervals directly.
+
+```{r gaussian-bootstrap-plot}
+plot_inference(
+  boot,
+  coefficient_set = "expert",
+  type = "pointwise",
+  level = 0.95
+)
+```
+
+## Optional bandwidth selection
 
 For real analyses, bandwidth should usually be selected rather than fixed by
-hand. The cross-validation selector uses held-out predictive log-likelihood and
-returns a final refit by default.
+hand. The selector uses held-out predictive log-likelihood and returns a final
+refit by default.
 
 ```{r bandwidth, eval=FALSE}
 selection <- vcmoe_select_bandwidth(
@@ -147,13 +209,106 @@ selection <- vcmoe_select_bandwidth(
   u = "u",
   family = "gaussian",
   k = 2,
-  bandwidth_grid = c(0.24, 0.30, 0.36),
+  bandwidth_grid = c(0.25, 0.35, 0.45),
   folds = 3,
-  u_grid = seq(0.1, 0.9, length.out = 5),
-  control = list(maxit = 80, n_starts = 2, seed = 3),
+  u_grid = seq(0.15, 0.85, length.out = 4),
+  control = list(maxit = 60, n_starts = 1, seed = 3),
   seed = 4
 )
 
 selection
 selection$best_bandwidth
 ```
+
+## Binomial responses
+
+For Bernoulli responses, the response column must be 0/1. Expert coefficients
+are on the logit success-probability scale. Predictions with `type = "mean"`
+return marginal success probabilities.
+
+```{r binomial-bernoulli}
+binom <- simulate_vcmoe_binomial(
+  n = 140,
+  k = 2,
+  seed = 11,
+  trials = 1,
+  separation = 1.6
+)
+
+binom_fit <- vcmoe_fit(
+  y ~ z1 | x1,
+  data = binom$data,
+  u = "u",
+  family = "binomial",
+  k = 2,
+  bandwidth = 0.40,
+  u_grid = seq(0.15, 0.85, length.out = 4),
+  control = list(maxit = 50, n_starts = 1, seed = 12, warn_ambiguous = FALSE)
+)
+
+head(predict(binom_fit, type = "mean"))
+head(predict(binom_fit, type = "posterior"))
+vcmoe_diagnostics(binom_fit)[, c("u", "converged", "ambiguous", "effective_n")]
+```
+
+Grouped Binomial data use the standard R two-column response form,
+`cbind(success, failure)`.
+
+```{r binomial-grouped}
+grouped <- simulate_vcmoe_binomial(
+  n = 140,
+  k = 2,
+  seed = 13,
+  trials = 8,
+  separation = 1.6
+)
+
+grouped_fit <- vcmoe_fit(
+  cbind(success, failure) ~ z1 | x1,
+  data = grouped$data,
+  u = "u",
+  family = "binomial",
+  k = 2,
+  bandwidth = 0.40,
+  u_grid = seq(0.15, 0.85, length.out = 4),
+  control = list(maxit = 50, n_starts = 1, seed = 14, warn_ambiguous = FALSE)
+)
+
+coef(grouped_fit, "expert")[, , "z1"]
+head(predict(grouped_fit, type = "mean"))
+```
+
+## Negative-Binomial count responses
+
+For count data, use `family = "negative-binomial"`. Expert coefficients are on
+the log mean count scale. Library size or size factors should enter through an
+expert-side offset, for example `offset(log_size_factor)`.
+
+```{r negbin}
+nb <- simulate_vcmoe_negbin(
+  n = 140,
+  k = 2,
+  seed = 21,
+  separation = 1.6
+)
+
+nb_fit <- vcmoe_fit(
+  y ~ z1 + offset(log_size_factor) | x1,
+  data = nb$data,
+  u = "u",
+  family = "negative-binomial",
+  k = 2,
+  bandwidth = 0.45,
+  u_grid = seq(0.15, 0.85, length.out = 4),
+  control = list(maxit = 50, n_starts = 1, seed = 22, warn_ambiguous = FALSE)
+)
+
+coef(nb_fit, "expert")[, , "z1"]
+coef(nb_fit, "theta")
+head(predict(nb_fit, type = "mean"))
+vcmoe_diagnostics(nb_fit)[, c("u", "converged", "ambiguous", "effective_n")]
+```
+
+The same `vcmoe_confband()` interface can be used for Binomial and
+Negative-Binomial fits. This introductory tutorial only visualizes confidence
+bands for the Gaussian example, where the interpretation is simplest.

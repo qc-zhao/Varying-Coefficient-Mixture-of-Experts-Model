@@ -5,12 +5,12 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Gaussian VCMoE Simulation Tutorial • VCMoE</title>
+<title>VCMoE Tutorial: Gaussian Inference and Count Models • VCMoE</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Gaussian VCMoE Simulation Tutorial">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="VCMoE Tutorial: Gaussian Inference and Count Models">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -34,7 +34,7 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-tutorials" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Tutorials</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-tutorials">
-<li><a class="dropdown-item" href="../articles/vcmoe-gaussian-no-offset.html">Gaussian simulation tutorial</a></li>
+<li><a class="dropdown-item" href="../articles/vcmoe-gaussian-no-offset.html">Gaussian inference and count models</a></li>
   </ul>
 </li>
       </ul>
@@ -53,7 +53,7 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
 
-      <h1>Gaussian VCMoE Simulation Tutorial</h1>
+      <h1>VCMoE Tutorial: Gaussian Inference and Count Models</h1>
             
       
       <small class="dont-index">Source: <a href="https://github.com/qc-zhao/VCMoE/blob/HEAD/vignettes/vcmoe-gaussian-no-offset.Rmd" class="external-link"><code>vignettes/vcmoe-gaussian-no-offset.Rmd</code></a></small>
@@ -62,14 +62,7 @@
 
     
     
-<p>This vignette shows the basic steps for a Gaussian varying-coefficient mixture-of-experts model:</p>
-<ol style="list-style-type: decimal">
-<li>install and load <code>VCMoE</code>;</li>
-<li>simulate a small Gaussian example;</li>
-<li>fit <code><a href="../reference/vcmoe_fit.html">vcmoe_fit()</a></code>;</li>
-<li>inspect coefficient functions, posterior probabilities, and diagnostics.</li>
-</ol>
-<p>The example uses <code>k = 2</code>, which is the easiest setting for learning the package API and checking that the label-alignment diagnostics behave as expected.</p>
+<p>This tutorial gives a compact workflow for using <code>VCMoE</code>. The Gaussian example is the main walk-through because it shows fitting, diagnostics, coefficient plots, analytic simultaneous confidence bands, and bootstrap inference. The Binomial and Negative-Binomial examples use the same model interface and focus on response format, prediction scale, and diagnostics.</p>
 <div class="section level2">
 <h2 id="installation-from-github">Installation from GitHub<a class="anchor" aria-label="anchor" href="#installation-from-github"></a>
 </h2>
@@ -79,55 +72,40 @@
 <span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"qc-zhao/VCMoE"</span><span class="op">)</span></span></code></pre></div>
 <p>Then load the package:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://qc-zhao.github.io/VCMoE/">VCMoE</a></span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://qc-zhao.github.io/VCMoE/">VCMoE</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="simulate-gaussian-data">Simulate Gaussian data<a class="anchor" aria-label="anchor" href="#simulate-gaussian-data"></a>
+<h2 id="gaussian-model">Gaussian model<a class="anchor" aria-label="anchor" href="#gaussian-model"></a>
 </h2>
-<p><code><a href="../reference/simulate_vcmoe_gaussian.html">simulate_vcmoe_gaussian()</a></code> returns a data frame and the known truth used to generate it. The response is Gaussian, while the component-specific expert coefficients and gating probabilities vary with the continuous coordinate <code>u</code>.</p>
+<p>Simulate a small Gaussian data set with two latent components. The returned object contains the observed data and the true coefficient functions.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">sim</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulate_vcmoe_gaussian.html">simulate_vcmoe_gaussian</a></span><span class="op">(</span></span>
-<span>  n <span class="op">=</span> <span class="fl">240</span>,</span>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">sim</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulate_vcmoe_gaussian.html">simulate_vcmoe_gaussian</a></span><span class="op">(</span></span>
+<span>  n <span class="op">=</span> <span class="fl">180</span>,</span>
 <span>  k <span class="op">=</span> <span class="fl">2</span>,</span>
 <span>  seed <span class="op">=</span> <span class="fl">1</span>,</span>
-<span>  separation <span class="op">=</span> <span class="fl">1.4</span>,</span>
+<span>  separation <span class="op">=</span> <span class="fl">1.6</span>,</span>
 <span>  scenario <span class="op">=</span> <span class="st">"well_separated"</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">)</span></span>
 <span><span class="co">#&gt;             y          u         z1         x1 component</span></span>
-<span><span class="co">#&gt; 1  1.46391885 0.01307758 -0.5059575 -2.5923277         2</span></span>
-<span><span class="co">#&gt; 2  0.45150293 0.01339033  1.3430388  1.3140022         2</span></span>
-<span><span class="co">#&gt; 3 -0.07840661 0.02333120 -0.2145794 -0.6355430         1</span></span>
-<span><span class="co">#&gt; 4 -0.65570670 0.03554058 -0.1795565 -0.4299788         1</span></span>
-<span><span class="co">#&gt; 5 -0.88436358 0.04646089 -0.1001907 -0.1693183         1</span></span>
-<span><span class="co">#&gt; 6  0.06568162 0.05893438  0.7126663  0.6122182         1</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">sim</span><span class="op">$</span><span class="va">truth</span>, max.level <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
-<span><span class="co">#&gt; List of 9</span></span>
-<span><span class="co">#&gt;  $ expert     : num [1:240, 1:2, 1:2] -0.586 -0.585 -0.551 -0.51 -0.474 ...</span></span>
-<span><span class="co">#&gt;   ..- attr(*, "dimnames")=List of 3</span></span>
-<span><span class="co">#&gt;  $ gating     : num [1:240, 1:2, 1:2] -0.27 -0.27 -0.267 -0.263 -0.259 ...</span></span>
-<span><span class="co">#&gt;   ..- attr(*, "dimnames")=List of 3</span></span>
-<span><span class="co">#&gt;  $ sigma      : num [1:240, 1:2] 0.351 0.351 0.351 0.352 0.352 ...</span></span>
-<span><span class="co">#&gt;   ..- attr(*, "dimnames")=List of 2</span></span>
-<span><span class="co">#&gt;  $ probability: num [1:240, 1:2] 0.156 0.51 0.308 0.33 0.357 ...</span></span>
-<span><span class="co">#&gt;  $ logits     : num [1:240, 1:2] -0.8444 0.0205 -0.4058 -0.3551 -0.2947 ...</span></span>
-<span><span class="co">#&gt;  $ mean       : num [1:240, 1:2] -0.912 0.283 -0.691 -0.628 -0.541 ...</span></span>
-<span><span class="co">#&gt;  $ component  : int [1:240] 2 2 1 1 1 1 1 1 2 2 ...</span></span>
-<span><span class="co">#&gt;  $ scenario   : chr "well_separated"</span></span>
-<span><span class="co">#&gt;  $ terms      :List of 2</span></span></code></pre></div>
-</div>
-<div class="section level2">
-<h2 id="fit-the-model">Fit the model<a class="anchor" aria-label="anchor" href="#fit-the-model"></a>
-</h2>
-<p>The formula has two parts:</p>
+<span><span class="co">#&gt; 1 -1.20538651 0.01307758 -0.5425200 -0.2589326         1</span></span>
+<span><span class="co">#&gt; 2  0.32147312 0.01339033  1.2078678  0.3943792         1</span></span>
+<span><span class="co">#&gt; 3  1.16723844 0.02333120  1.1604026 -0.8518571         2</span></span>
+<span><span class="co">#&gt; 4 -0.06870166 0.03554058  0.7002136  2.6491669         1</span></span>
+<span><span class="co">#&gt; 5  1.36919490 0.05893438  1.5868335  0.1560117         2</span></span>
+<span><span class="co">#&gt; 6  1.06597098 0.06178627  0.5584864  1.1302073         2</span></span></code></pre></div>
+<p>The model formula has two parts:</p>
 <ul>
 <li>
-<code>y ~ z1</code> is the expert mean model;</li>
+<code>y ~ z1</code> is the component-specific expert mean model;</li>
 <li>
-<code>| x1</code> is the gating model.</li>
+<code>| x1</code> is the gating model for component probabilities.</li>
 </ul>
-<p>The varying coordinate is supplied separately through <code>u = "u"</code>. By default, <code><a href="../reference/vcmoe_fit.html">vcmoe_fit()</a></code> uses Epanechnikov density weights, a scaled local-linear basis, and unit scaling of <code>u</code>.</p>
+<p>The varying coordinate is supplied through <code>u = "u"</code>.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/vcmoe_fit.html">vcmoe_fit</a></span><span class="op">(</span></span>
 <span>  <span class="va">y</span> <span class="op">~</span> <span class="va">z1</span> <span class="op">|</span> <span class="va">x1</span>,</span>
@@ -135,9 +113,9 @@
 <span>  u <span class="op">=</span> <span class="st">"u"</span>,</span>
 <span>  family <span class="op">=</span> <span class="st">"gaussian"</span>,</span>
 <span>  k <span class="op">=</span> <span class="fl">2</span>,</span>
-<span>  bandwidth <span class="op">=</span> <span class="fl">0.30</span>,</span>
-<span>  u_grid <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0.1</span>, <span class="fl">0.9</span>, length.out <span class="op">=</span> <span class="fl">5</span><span class="op">)</span>,</span>
-<span>  control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>maxit <span class="op">=</span> <span class="fl">80</span>, n_starts <span class="op">=</span> <span class="fl">2</span>, seed <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span>
+<span>  bandwidth <span class="op">=</span> <span class="fl">0.35</span>,</span>
+<span>  u_grid <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0.15</span>, <span class="fl">0.85</span>, length.out <span class="op">=</span> <span class="fl">4</span><span class="op">)</span>,</span>
+<span>  control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>maxit <span class="op">=</span> <span class="fl">60</span>, n_starts <span class="op">=</span> <span class="fl">1</span>, seed <span class="op">=</span> <span class="fl">2</span>, warn_ambiguous <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">fit</span></span>
@@ -148,89 +126,304 @@
 <span><span class="co">#&gt;   kernel: epanechnikov (density_over_bandwidth)</span></span>
 <span><span class="co">#&gt;   local basis: (u - u0) / bandwidth</span></span>
 <span><span class="co">#&gt;   u scale: unit</span></span>
-<span><span class="co">#&gt;   grid points: 5</span></span>
-<span><span class="co">#&gt;   bandwidth: 0.3</span></span>
-<span><span class="co">#&gt;   converged grid points: 5/5</span></span></code></pre></div>
-</div>
-<div class="section level2">
-<h2 id="coefficients-and-predictions">Coefficients and predictions<a class="anchor" aria-label="anchor" href="#coefficients-and-predictions"></a>
-</h2>
-<p>Expert coefficients are returned as an array indexed by grid point, component, and term. Posterior probabilities are returned with one column per component.</p>
+<span><span class="co">#&gt;   grid points: 4</span></span>
+<span><span class="co">#&gt;   bandwidth: 0.35</span></span>
+<span><span class="co">#&gt;   converged grid points: 4/4</span></span></code></pre></div>
+<p>Expert coefficients are returned as an array indexed by grid point, component, and term.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">expert_coef</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">fit</span>, <span class="st">"expert"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">expert_coef</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 5 2 2</span></span>
+<span><span class="co">#&gt; [1] 4 2 2</span></span>
 <span><span class="va">expert_coef</span><span class="op">[</span>, , <span class="st">"z1"</span><span class="op">]</span></span>
-<span><span class="co">#&gt;      component</span></span>
-<span><span class="co">#&gt; u     component1  component2</span></span>
-<span><span class="co">#&gt;   0.1  0.7219067 -0.34152286</span></span>
-<span><span class="co">#&gt;   0.3  0.8642307 -0.32224523</span></span>
-<span><span class="co">#&gt;   0.5  0.9013834 -0.28998022</span></span>
-<span><span class="co">#&gt;   0.7  0.9180562 -0.18282712</span></span>
-<span><span class="co">#&gt;   0.9  1.0469837 -0.03351975</span></span></code></pre></div>
+<span><span class="co">#&gt;             component</span></span>
+<span><span class="co">#&gt; u            component1 component2</span></span>
+<span><span class="co">#&gt;   0.15        0.8870411 -0.2168521</span></span>
+<span><span class="co">#&gt;   0.38333333  0.8687925 -0.3567810</span></span>
+<span><span class="co">#&gt;   0.61666667  1.0780929 -0.3219224</span></span>
+<span><span class="co">#&gt;   0.85        1.1775523 -0.2650091</span></span></code></pre></div>
+<p>Predictions can be requested as marginal means, posterior component probabilities, or component-specific means.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">posterior</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span>, type <span class="op">=</span> <span class="st">"posterior"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">posterior</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span>, type <span class="op">=</span> <span class="st">"mean"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] -0.8016788  0.8411863  0.8640268  0.3781018  0.9534998  1.0079850</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span>, type <span class="op">=</span> <span class="st">"posterior"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt;              [,1]         [,2]</span></span>
-<span><span class="co">#&gt; [1,] 8.922896e-07 9.999991e-01</span></span>
-<span><span class="co">#&gt; [2,] 7.899766e-01 2.100234e-01</span></span>
-<span><span class="co">#&gt; [3,] 9.775080e-01 2.249200e-02</span></span>
-<span><span class="co">#&gt; [4,] 9.999230e-01 7.701971e-05</span></span>
-<span><span class="co">#&gt; [5,] 9.999901e-01 9.927720e-06</span></span>
-<span><span class="co">#&gt; [6,] 9.104549e-01 8.954513e-02</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">rowSums</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">posterior</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 1 1 1 1 1 1</span></span>
-<span></span>
-<span><span class="va">fitted_mean</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span>, type <span class="op">=</span> <span class="st">"mean"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">fitted_mean</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1]  1.1896767  0.7020420 -0.3510114 -0.3587783 -0.3015808  0.3289356</span></span></code></pre></div>
+<span><span class="co">#&gt; [1,] 9.999993e-01 6.984643e-07</span></span>
+<span><span class="co">#&gt; [2,] 2.238460e-01 7.761540e-01</span></span>
+<span><span class="co">#&gt; [3,] 7.986774e-02 9.201323e-01</span></span>
+<span><span class="co">#&gt; [4,] 8.855677e-01 1.144323e-01</span></span>
+<span><span class="co">#&gt; [5,] 5.576500e-01 4.423500e-01</span></span>
+<span><span class="co">#&gt; [6,] 4.229101e-05 9.999577e-01</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span>, type <span class="op">=</span> <span class="st">"component"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;      component1 component2</span></span>
+<span><span class="co">#&gt; [1,] -0.8016802  1.2467758</span></span>
+<span><span class="co">#&gt; [2,]  0.7509857  0.8672005</span></span>
+<span><span class="co">#&gt; [3,]  0.7088822  0.8774934</span></span>
+<span><span class="co">#&gt; [4,]  0.3006756  0.9772863</span></span>
+<span><span class="co">#&gt; [5,]  1.0871439  0.7850209</span></span>
+<span><span class="co">#&gt; [6,]  0.1749578  1.0080202</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="diagnostics">Diagnostics<a class="anchor" aria-label="anchor" href="#diagnostics"></a>
+<h2 id="diagnostics-and-basic-plots">Diagnostics and basic plots<a class="anchor" aria-label="anchor" href="#diagnostics-and-basic-plots"></a>
 </h2>
-<p>Always inspect diagnostics before interpreting coefficient functions. The most important early checks are grid convergence, label ambiguity, component proportions, posterior entropy, and effective local sample size.</p>
+<p>Always inspect diagnostics before interpreting coefficient functions.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">diagnostics</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/vcmoe_diagnostics.html">vcmoe_diagnostics</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="va">diagnostics</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"u"</span>, <span class="st">"converged"</span>, <span class="st">"ambiguous"</span>, <span class="st">"posterior_entropy"</span>, <span class="st">"effective_n"</span><span class="op">)</span><span class="op">]</span></span>
-<span><span class="co">#&gt;     u converged ambiguous posterior_entropy effective_n</span></span>
-<span><span class="co">#&gt; 1 0.1      TRUE     FALSE         0.2123831    77.73469</span></span>
-<span><span class="co">#&gt; 2 0.3      TRUE     FALSE         0.2262570   123.66422</span></span>
-<span><span class="co">#&gt; 3 0.5      TRUE     FALSE         0.2086574   131.44235</span></span>
-<span><span class="co">#&gt; 4 0.7      TRUE     FALSE         0.1471565   122.84420</span></span>
-<span><span class="co">#&gt; 5 0.9      TRUE     FALSE         0.1160909    82.69806</span></span></code></pre></div>
-</div>
-<div class="section level2">
-<h2 id="plots">Plots<a class="anchor" aria-label="anchor" href="#plots"></a>
-</h2>
-<p><code><a href="../reference/plot_coefficients.html">plot_coefficients()</a></code> shows the fitted coefficient functions. For a simulated example, the plot is mainly a quick visual check that the fitted paths are smooth and labels remain connected across the grid.</p>
+<span><span class="co">#&gt;           u converged ambiguous posterior_entropy effective_n</span></span>
+<span><span class="co">#&gt; 1 0.1500000      TRUE     FALSE         0.2020886    75.40914</span></span>
+<span><span class="co">#&gt; 2 0.3833333      TRUE     FALSE         0.2306336   109.36806</span></span>
+<span><span class="co">#&gt; 3 0.6166667      TRUE     FALSE         0.1654692   115.15966</span></span>
+<span><span class="co">#&gt; 4 0.8500000      TRUE     FALSE         0.1324949    79.45137</span></span></code></pre></div>
+<p><code><a href="../reference/plot_coefficients.html">plot_coefficients()</a></code> and <code><a href="../reference/plot_posterior.html">plot_posterior()</a></code> provide quick visual checks.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_coefficients.html">plot_coefficients</a></span><span class="op">(</span><span class="va">fit</span>, <span class="st">"expert"</span><span class="op">)</span></span></code></pre></div>
-<p><img src="vcmoe-gaussian-no-offset_files/figure-html/coefficient-plot-1.png" class="r-plt" alt="" width="672"></p>
-<p><code><a href="../reference/plot_posterior.html">plot_posterior()</a></code> summarizes posterior component probabilities over <code>u</code>.</p>
+<p><img src="vcmoe-gaussian-no-offset_files/figure-html/gaussian-coefficient-plot-1.png" class="r-plt" alt="" width="672"></p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_posterior.html">plot_posterior</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></code></pre></div>
-<p><img src="vcmoe-gaussian-no-offset_files/figure-html/posterior-plot-1.png" class="r-plt" alt="" width="672"></p>
+<p><img src="vcmoe-gaussian-no-offset_files/figure-html/gaussian-posterior-plot-1.png" class="r-plt" alt="" width="672"></p>
 </div>
 <div class="section level2">
-<h2 id="optional-bandwidth-selection">Optional: bandwidth selection<a class="anchor" aria-label="anchor" href="#optional-bandwidth-selection"></a>
+<h2 id="analytic-simultaneous-confidence-bands">Analytic simultaneous confidence bands<a class="anchor" aria-label="anchor" href="#analytic-simultaneous-confidence-bands"></a>
 </h2>
-<p>For real analyses, bandwidth should usually be selected rather than fixed by hand. The cross-validation selector uses held-out predictive log-likelihood and returns a final refit by default.</p>
+<p><code><a href="../reference/vcmoe_confband.html">vcmoe_confband()</a></code> computes diagnostic-gated analytic-style Epanechnikov path bands. The returned object contains an interval table and grid-level diagnostics. Rows with <code>status != "ok"</code> are blocked because the local fit is too weak for the interval to be interpreted.</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">band</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/vcmoe_confband.html">vcmoe_confband</a></span><span class="op">(</span></span>
+<span>  <span class="va">fit</span>,</span>
+<span>  data <span class="op">=</span> <span class="va">sim</span><span class="op">$</span><span class="va">data</span>,</span>
+<span>  level <span class="op">=</span> <span class="fl">0.95</span>,</span>
+<span>  type <span class="op">=</span> <span class="st">"simultaneous"</span>,</span>
+<span>  coefficient_set <span class="op">=</span> <span class="st">"expert"</span>,</span>
+<span>  strict <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">band</span></span>
+<span><span class="co">#&gt; VCMoE analytic-style confidence bands</span></span>
+<span><span class="co">#&gt;   family: gaussian</span></span>
+<span><span class="co">#&gt;   components: 2</span></span>
+<span><span class="co">#&gt;   type: simultaneous</span></span>
+<span><span class="co">#&gt;   level: 0.95</span></span>
+<span><span class="co">#&gt;   interval rows ok: 32/32</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">band</span><span class="op">$</span><span class="va">intervals</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
+<span>  <span class="st">"u"</span>, <span class="st">"component"</span>, <span class="st">"term"</span>, <span class="st">"block"</span>, <span class="st">"estimate"</span>,</span>
+<span>  <span class="st">"lower"</span>, <span class="st">"upper"</span>, <span class="st">"status"</span>, <span class="st">"block_reason"</span></span>
+<span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="co">#&gt;      u  component        term     block    estimate      lower       upper</span></span>
+<span><span class="co">#&gt; 1 0.15 component1 (Intercept) intercept -0.32044265 -0.5560750 -0.08481032</span></span>
+<span><span class="co">#&gt; 2 0.15 component1          z1 intercept  0.88704111  0.6068012  1.16728101</span></span>
+<span><span class="co">#&gt; 3 0.15 component2 (Intercept) intercept  1.12912917  0.8819065  1.37635179</span></span>
+<span><span class="co">#&gt; 4 0.15 component2          z1 intercept -0.21685213 -0.4883527  0.05464840</span></span>
+<span><span class="co">#&gt; 5 0.15 component1 (Intercept)     slope  0.94748432  0.3255871  1.56938155</span></span>
+<span><span class="co">#&gt; 6 0.15 component1          z1     slope  0.07598394 -0.5013185  0.65328636</span></span>
+<span><span class="co">#&gt;   status block_reason</span></span>
+<span><span class="co">#&gt; 1     ok         &lt;NA&gt;</span></span>
+<span><span class="co">#&gt; 2     ok         &lt;NA&gt;</span></span>
+<span><span class="co">#&gt; 3     ok         &lt;NA&gt;</span></span>
+<span><span class="co">#&gt; 4     ok         &lt;NA&gt;</span></span>
+<span><span class="co">#&gt; 5     ok         &lt;NA&gt;</span></span>
+<span><span class="co">#&gt; 6     ok         &lt;NA&gt;</span></span></code></pre></div>
+<p>For coefficient-function plots, use the local-linear intercept rows. The slope rows describe local derivative terms and are not the coefficient functions themselves.</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">scb_plot</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/subset.html" class="external-link">subset</a></span><span class="op">(</span></span>
+<span>  <span class="va">band</span><span class="op">$</span><span class="va">intervals</span>,</span>
+<span>  <span class="va">coefficient_set</span> <span class="op">==</span> <span class="st">"expert"</span> <span class="op">&amp;</span> <span class="va">block</span> <span class="op">==</span> <span class="st">"intercept"</span> <span class="op">&amp;</span> <span class="va">status</span> <span class="op">==</span> <span class="st">"ok"</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">scb_plot</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">u</span>, y <span class="op">=</span> <span class="va">estimate</span>, color <span class="op">=</span> <span class="va">component</span>, fill <span class="op">=</span> <span class="va">component</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_ribbon.html" class="external-link">geom_ribbon</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>ymin <span class="op">=</span> <span class="va">lower</span>, ymax <span class="op">=</span> <span class="va">upper</span><span class="op">)</span>, alpha <span class="op">=</span> <span class="fl">0.18</span>, color <span class="op">=</span> <span class="cn">NA</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span>linewidth <span class="op">=</span> <span class="fl">0.8</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/facet_wrap.html" class="external-link">facet_wrap</a></span><span class="op">(</span><span class="op">~</span> <span class="va">term</span>, scales <span class="op">=</span> <span class="st">"free_y"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span></span>
+<span>    x <span class="op">=</span> <span class="st">"u"</span>,</span>
+<span>    y <span class="op">=</span> <span class="st">"coefficient"</span>,</span>
+<span>    color <span class="op">=</span> <span class="st">"component"</span>,</span>
+<span>    fill <span class="op">=</span> <span class="st">"component"</span></span>
+<span>  <span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span>base_size <span class="op">=</span> <span class="fl">12</span><span class="op">)</span></span></code></pre></div>
+<p><img src="vcmoe-gaussian-no-offset_files/figure-html/gaussian-scb-plot-1.png" class="r-plt" alt="" width="672"></p>
+</div>
+<div class="section level2">
+<h2 id="bootstrap-inference">Bootstrap inference<a class="anchor" aria-label="anchor" href="#bootstrap-inference"></a>
+</h2>
+<p>Parametric bootstrap inference is also available. Each bootstrap replicate simulates a new response from the fitted mixture, refits the same VCMoE model, and aligns bootstrap component labels back to the reference fit.</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">boot</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/vcmoe_bootstrap.html">vcmoe_bootstrap</a></span><span class="op">(</span></span>
+<span>  <span class="va">fit</span>,</span>
+<span>  data <span class="op">=</span> <span class="va">sim</span><span class="op">$</span><span class="va">data</span>,</span>
+<span>  B <span class="op">=</span> <span class="fl">6</span>,</span>
+<span>  seed <span class="op">=</span> <span class="fl">5</span>,</span>
+<span>  min_successful <span class="op">=</span> <span class="fl">2</span>,</span>
+<span>  control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>maxit <span class="op">=</span> <span class="fl">40</span>, n_starts <span class="op">=</span> <span class="fl">1</span>, warn_ambiguous <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">boot</span></span>
+<span><span class="co">#&gt; VCMoE bootstrap inference</span></span>
+<span><span class="co">#&gt;   family: gaussian</span></span>
+<span><span class="co">#&gt;   components: 2</span></span>
+<span><span class="co">#&gt;   bootstrap replicates: 6/6 successful</span></span>
+<span><span class="co">#&gt;   coefficient sets: expert, gating</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint</a></span><span class="op">(</span><span class="va">boot</span>, parm <span class="op">=</span> <span class="st">"expert"</span>, type <span class="op">=</span> <span class="st">"pointwise"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   coefficient_set        term  component         u   estimate         se</span></span>
+<span><span class="co">#&gt; 1          expert (Intercept) component1 0.1500000 -0.3204427 0.04760265</span></span>
+<span><span class="co">#&gt; 2          expert (Intercept) component1 0.3833333 -0.3813966 0.07480567</span></span>
+<span><span class="co">#&gt; 3          expert (Intercept) component1 0.6166667 -0.9050922 0.06340877</span></span>
+<span><span class="co">#&gt; 4          expert (Intercept) component1 0.8500000 -1.0547571 0.04586277</span></span>
+<span><span class="co">#&gt; 5          expert (Intercept) component2 0.1500000  1.1291292 0.09950992</span></span>
+<span><span class="co">#&gt; 6          expert (Intercept) component2 0.3833333  0.8243641 0.02707169</span></span>
+<span><span class="co">#&gt;        lower      upper      type level n_successful</span></span>
+<span><span class="co">#&gt; 1 -0.3498149 -0.2205795 pointwise  0.95            6</span></span>
+<span><span class="co">#&gt; 2 -0.5316861 -0.3408192 pointwise  0.95            6</span></span>
+<span><span class="co">#&gt; 3 -0.8940630 -0.7301069 pointwise  0.95            6</span></span>
+<span><span class="co">#&gt; 4 -1.1636195 -1.0565103 pointwise  0.95            6</span></span>
+<span><span class="co">#&gt; 5  0.9718077  1.1824375 pointwise  0.95            6</span></span>
+<span><span class="co">#&gt; 6  0.8350992  0.8974524 pointwise  0.95            6</span></span></code></pre></div>
+<p><code><a href="../reference/plot_inference.html">plot_inference()</a></code> visualizes bootstrap intervals directly.</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_inference.html">plot_inference</a></span><span class="op">(</span></span>
+<span>  <span class="va">boot</span>,</span>
+<span>  coefficient_set <span class="op">=</span> <span class="st">"expert"</span>,</span>
+<span>  type <span class="op">=</span> <span class="st">"pointwise"</span>,</span>
+<span>  level <span class="op">=</span> <span class="fl">0.95</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p><img src="vcmoe-gaussian-no-offset_files/figure-html/gaussian-bootstrap-plot-1.png" class="r-plt" alt="" width="672"></p>
+</div>
+<div class="section level2">
+<h2 id="optional-bandwidth-selection">Optional bandwidth selection<a class="anchor" aria-label="anchor" href="#optional-bandwidth-selection"></a>
+</h2>
+<p>For real analyses, bandwidth should usually be selected rather than fixed by hand. The selector uses held-out predictive log-likelihood and returns a final refit by default.</p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">selection</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/vcmoe_select_bandwidth.html">vcmoe_select_bandwidth</a></span><span class="op">(</span></span>
 <span>  <span class="va">y</span> <span class="op">~</span> <span class="va">z1</span> <span class="op">|</span> <span class="va">x1</span>,</span>
 <span>  data <span class="op">=</span> <span class="va">sim</span><span class="op">$</span><span class="va">data</span>,</span>
 <span>  u <span class="op">=</span> <span class="st">"u"</span>,</span>
 <span>  family <span class="op">=</span> <span class="st">"gaussian"</span>,</span>
 <span>  k <span class="op">=</span> <span class="fl">2</span>,</span>
-<span>  bandwidth_grid <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.24</span>, <span class="fl">0.30</span>, <span class="fl">0.36</span><span class="op">)</span>,</span>
+<span>  bandwidth_grid <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.25</span>, <span class="fl">0.35</span>, <span class="fl">0.45</span><span class="op">)</span>,</span>
 <span>  folds <span class="op">=</span> <span class="fl">3</span>,</span>
-<span>  u_grid <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0.1</span>, <span class="fl">0.9</span>, length.out <span class="op">=</span> <span class="fl">5</span><span class="op">)</span>,</span>
-<span>  control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>maxit <span class="op">=</span> <span class="fl">80</span>, n_starts <span class="op">=</span> <span class="fl">2</span>, seed <span class="op">=</span> <span class="fl">3</span><span class="op">)</span>,</span>
+<span>  u_grid <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0.15</span>, <span class="fl">0.85</span>, length.out <span class="op">=</span> <span class="fl">4</span><span class="op">)</span>,</span>
+<span>  control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>maxit <span class="op">=</span> <span class="fl">60</span>, n_starts <span class="op">=</span> <span class="fl">1</span>, seed <span class="op">=</span> <span class="fl">3</span><span class="op">)</span>,</span>
 <span>  seed <span class="op">=</span> <span class="fl">4</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">selection</span></span>
 <span><span class="va">selection</span><span class="op">$</span><span class="va">best_bandwidth</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="binomial-responses">Binomial responses<a class="anchor" aria-label="anchor" href="#binomial-responses"></a>
+</h2>
+<p>For Bernoulli responses, the response column must be 0/1. Expert coefficients are on the logit success-probability scale. Predictions with <code>type = "mean"</code> return marginal success probabilities.</p>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">binom</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulate_vcmoe_binomial.html">simulate_vcmoe_binomial</a></span><span class="op">(</span></span>
+<span>  n <span class="op">=</span> <span class="fl">140</span>,</span>
+<span>  k <span class="op">=</span> <span class="fl">2</span>,</span>
+<span>  seed <span class="op">=</span> <span class="fl">11</span>,</span>
+<span>  trials <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  separation <span class="op">=</span> <span class="fl">1.6</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">binom_fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/vcmoe_fit.html">vcmoe_fit</a></span><span class="op">(</span></span>
+<span>  <span class="va">y</span> <span class="op">~</span> <span class="va">z1</span> <span class="op">|</span> <span class="va">x1</span>,</span>
+<span>  data <span class="op">=</span> <span class="va">binom</span><span class="op">$</span><span class="va">data</span>,</span>
+<span>  u <span class="op">=</span> <span class="st">"u"</span>,</span>
+<span>  family <span class="op">=</span> <span class="st">"binomial"</span>,</span>
+<span>  k <span class="op">=</span> <span class="fl">2</span>,</span>
+<span>  bandwidth <span class="op">=</span> <span class="fl">0.40</span>,</span>
+<span>  u_grid <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0.15</span>, <span class="fl">0.85</span>, length.out <span class="op">=</span> <span class="fl">4</span><span class="op">)</span>,</span>
+<span>  control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>maxit <span class="op">=</span> <span class="fl">50</span>, n_starts <span class="op">=</span> <span class="fl">1</span>, seed <span class="op">=</span> <span class="fl">12</span>, warn_ambiguous <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">binom_fit</span>, type <span class="op">=</span> <span class="st">"mean"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 0.5597817 0.5669232 0.5976283 0.5621652 0.5612603 0.5644602</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">binom_fit</span>, type <span class="op">=</span> <span class="st">"posterior"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;           [,1]      [,2]</span></span>
+<span><span class="co">#&gt; [1,] 0.5251617 0.4748383</span></span>
+<span><span class="co">#&gt; [2,] 0.5175076 0.4824924</span></span>
+<span><span class="co">#&gt; [3,] 0.3058945 0.6941055</span></span>
+<span><span class="co">#&gt; [4,] 0.3968424 0.6031576</span></span>
+<span><span class="co">#&gt; [5,] 0.6776390 0.3223610</span></span>
+<span><span class="co">#&gt; [6,] 0.3947536 0.6052464</span></span>
+<span><span class="fu"><a href="../reference/vcmoe_diagnostics.html">vcmoe_diagnostics</a></span><span class="op">(</span><span class="va">binom_fit</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"u"</span>, <span class="st">"converged"</span>, <span class="st">"ambiguous"</span>, <span class="st">"effective_n"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt;           u converged ambiguous effective_n</span></span>
+<span><span class="co">#&gt; 1 0.1500000     FALSE     FALSE    80.43470</span></span>
+<span><span class="co">#&gt; 2 0.3833333      TRUE      TRUE   104.30305</span></span>
+<span><span class="co">#&gt; 3 0.6166667      TRUE     FALSE    87.49882</span></span>
+<span><span class="co">#&gt; 4 0.8500000      TRUE     FALSE    53.78913</span></span></code></pre></div>
+<p>Grouped Binomial data use the standard R two-column response form, <code>cbind(success, failure)</code>.</p>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">grouped</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulate_vcmoe_binomial.html">simulate_vcmoe_binomial</a></span><span class="op">(</span></span>
+<span>  n <span class="op">=</span> <span class="fl">140</span>,</span>
+<span>  k <span class="op">=</span> <span class="fl">2</span>,</span>
+<span>  seed <span class="op">=</span> <span class="fl">13</span>,</span>
+<span>  trials <span class="op">=</span> <span class="fl">8</span>,</span>
+<span>  separation <span class="op">=</span> <span class="fl">1.6</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">grouped_fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/vcmoe_fit.html">vcmoe_fit</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span><span class="va">success</span>, <span class="va">failure</span><span class="op">)</span> <span class="op">~</span> <span class="va">z1</span> <span class="op">|</span> <span class="va">x1</span>,</span>
+<span>  data <span class="op">=</span> <span class="va">grouped</span><span class="op">$</span><span class="va">data</span>,</span>
+<span>  u <span class="op">=</span> <span class="st">"u"</span>,</span>
+<span>  family <span class="op">=</span> <span class="st">"binomial"</span>,</span>
+<span>  k <span class="op">=</span> <span class="fl">2</span>,</span>
+<span>  bandwidth <span class="op">=</span> <span class="fl">0.40</span>,</span>
+<span>  u_grid <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0.15</span>, <span class="fl">0.85</span>, length.out <span class="op">=</span> <span class="fl">4</span><span class="op">)</span>,</span>
+<span>  control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>maxit <span class="op">=</span> <span class="fl">50</span>, n_starts <span class="op">=</span> <span class="fl">1</span>, seed <span class="op">=</span> <span class="fl">14</span>, warn_ambiguous <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">grouped_fit</span>, <span class="st">"expert"</span><span class="op">)</span><span class="op">[</span>, , <span class="st">"z1"</span><span class="op">]</span></span>
+<span><span class="co">#&gt;             component</span></span>
+<span><span class="co">#&gt; u            component1  component2</span></span>
+<span><span class="co">#&gt;   0.15        0.6096972  0.08520915</span></span>
+<span><span class="co">#&gt;   0.38333333  0.5940746  0.02180605</span></span>
+<span><span class="co">#&gt;   0.61666667  0.7220808 -0.16229154</span></span>
+<span><span class="co">#&gt;   0.85        0.8233301 -0.33230528</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">grouped_fit</span>, type <span class="op">=</span> <span class="st">"mean"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 0.5703339 0.5377196 0.5544001 0.3953660 0.6255196 0.3936642</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="negative-binomial-count-responses">Negative-Binomial count responses<a class="anchor" aria-label="anchor" href="#negative-binomial-count-responses"></a>
+</h2>
+<p>For count data, use <code>family = "negative-binomial"</code>. Expert coefficients are on the log mean count scale. Library size or size factors should enter through an expert-side offset, for example <code>offset(log_size_factor)</code>.</p>
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">nb</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulate_vcmoe_negbin.html">simulate_vcmoe_negbin</a></span><span class="op">(</span></span>
+<span>  n <span class="op">=</span> <span class="fl">140</span>,</span>
+<span>  k <span class="op">=</span> <span class="fl">2</span>,</span>
+<span>  seed <span class="op">=</span> <span class="fl">21</span>,</span>
+<span>  separation <span class="op">=</span> <span class="fl">1.6</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">nb_fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/vcmoe_fit.html">vcmoe_fit</a></span><span class="op">(</span></span>
+<span>  <span class="va">y</span> <span class="op">~</span> <span class="va">z1</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/offset.html" class="external-link">offset</a></span><span class="op">(</span><span class="va">log_size_factor</span><span class="op">)</span> <span class="op">|</span> <span class="va">x1</span>,</span>
+<span>  data <span class="op">=</span> <span class="va">nb</span><span class="op">$</span><span class="va">data</span>,</span>
+<span>  u <span class="op">=</span> <span class="st">"u"</span>,</span>
+<span>  family <span class="op">=</span> <span class="st">"negative-binomial"</span>,</span>
+<span>  k <span class="op">=</span> <span class="fl">2</span>,</span>
+<span>  bandwidth <span class="op">=</span> <span class="fl">0.45</span>,</span>
+<span>  u_grid <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0.15</span>, <span class="fl">0.85</span>, length.out <span class="op">=</span> <span class="fl">4</span><span class="op">)</span>,</span>
+<span>  control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>maxit <span class="op">=</span> <span class="fl">50</span>, n_starts <span class="op">=</span> <span class="fl">1</span>, seed <span class="op">=</span> <span class="fl">22</span>, warn_ambiguous <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">nb_fit</span>, <span class="st">"expert"</span><span class="op">)</span><span class="op">[</span>, , <span class="st">"z1"</span><span class="op">]</span></span>
+<span><span class="co">#&gt;             component</span></span>
+<span><span class="co">#&gt; u             component1  component2</span></span>
+<span><span class="co">#&gt;   0.15       -0.90690491 -0.09620458</span></span>
+<span><span class="co">#&gt;   0.38333333  0.03034786 -0.09363928</span></span>
+<span><span class="co">#&gt;   0.61666667  0.28051808 -0.29935311</span></span>
+<span><span class="co">#&gt;   0.85       -0.01296923  0.75449297</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">nb_fit</span>, <span class="st">"theta"</span><span class="op">)</span></span>
+<span><span class="co">#&gt;             component</span></span>
+<span><span class="co">#&gt; u             component1 component2</span></span>
+<span><span class="co">#&gt;   0.15       9999.265173 9999.29158</span></span>
+<span><span class="co">#&gt;   0.38333333    6.118580   23.38157</span></span>
+<span><span class="co">#&gt;   0.61666667    2.891041 9999.20678</span></span>
+<span><span class="co">#&gt;   0.85          9.654845 9999.42459</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">nb_fit</span>, type <span class="op">=</span> <span class="st">"mean"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 6.075218 4.790164 6.031515 4.255975 7.678395 7.951932</span></span>
+<span><span class="fu"><a href="../reference/vcmoe_diagnostics.html">vcmoe_diagnostics</a></span><span class="op">(</span><span class="va">nb_fit</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"u"</span>, <span class="st">"converged"</span>, <span class="st">"ambiguous"</span>, <span class="st">"effective_n"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt;                    u converged ambiguous effective_n</span></span>
+<span><span class="co">#&gt; 0.15       0.1500000      TRUE     FALSE    59.62464</span></span>
+<span><span class="co">#&gt; 0.38333333 0.3833333     FALSE     FALSE    89.68903</span></span>
+<span><span class="co">#&gt; 0.61666667 0.6166667     FALSE     FALSE   100.34682</span></span>
+<span><span class="co">#&gt; 0.85       0.8500000     FALSE     FALSE    86.15791</span></span></code></pre></div>
+<p>The same <code><a href="../reference/vcmoe_confband.html">vcmoe_confband()</a></code> interface can be used for Binomial and Negative-Binomial fits. This introductory tutorial only visualizes confidence bands for the Gaussian example, where the interpretation is simplest.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

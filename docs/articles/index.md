@@ -10,8 +10,8 @@
 
 </div>
 
--   [Gaussian VCMoE Simulation
-    Tutorial](https://qc-zhao.github.io/VCMoE/articles/vcmoe-gaussian-no-offset.md):
+-   [VCMoE Tutorial: Gaussian Inference and Count
+    Models](https://qc-zhao.github.io/VCMoE/articles/vcmoe-gaussian-no-offset.md):
 
 </div>
 

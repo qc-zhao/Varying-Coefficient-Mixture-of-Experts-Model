@@ -3,6 +3,6 @@
 # License
 
     YEAR: 2026
-    COPYRIGHT HOLDER: VCMoE authors
+    COPYRIGHT HOLDER: Qicheng Zhao
 
 </div>

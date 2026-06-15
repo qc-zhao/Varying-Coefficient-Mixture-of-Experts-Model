@@ -119,14 +119,15 @@ plot_coefficients(fit)
 
 ## Tutorials
 
-Start with the Gaussian simulation tutorial:
+Start with the main tutorial:
 
-[Gaussian no-offset simulation
+[Gaussian inference and count-model
 tutorial](https://qc-zhao.github.io/VCMoE/articles/vcmoe-gaussian-no-offset.md)
 
-The tutorial shows how to simulate data, fit a VCMoE model, inspect
-posterior probabilities, and compare estimated coefficient functions
-against the truth.
+The tutorial shows how to simulate Gaussian data, fit a VCMoE model,
+inspect posterior probabilities, plot analytic simultaneous confidence
+bands, run bootstrap inference, and fit Binomial and Negative-Binomial
+examples.
 
 </div>
 
