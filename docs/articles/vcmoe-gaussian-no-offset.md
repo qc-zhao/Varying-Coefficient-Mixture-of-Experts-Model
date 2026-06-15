@@ -1,13 +1,10 @@
 <div id="main" class="col-md-9" role="main">
 
-# VCMoE Tutorial: Gaussian Inference and Count Models
+# Gaussian VCMoE Tutorial
 
-This tutorial gives a compact workflow for using `VCMoE`. The Gaussian
-example is the main walk-through because it shows fitting, diagnostics,
-coefficient plots, analytic simultaneous confidence bands, and bootstrap
-inference. The Binomial and Negative-Binomial examples use the same
-model interface and focus on response format, prediction scale, and
-diagnostics.
+This tutorial gives a compact Gaussian workflow for using `VCMoE`:
+simulation, fitting, diagnostics, coefficient plots, analytic
+simultaneous confidence bands, and bootstrap inference.
 
 <div class="section level2">
 
@@ -309,7 +306,7 @@ boot
 #>   components: 2
 #>   bootstrap replicates: 6/6 successful
 #>   coefficient sets: expert, gating
-head(confint(boot, parm = "expert", type = "pointwise"))
+head(confint(boot, parm = "expert", type = "simultaneous"))
 #>   coefficient_set        term  component         u   estimate         se
 #> 1          expert (Intercept) component1 0.1500000 -0.3204427 0.04760265
 #> 2          expert (Intercept) component1 0.3833333 -0.3813966 0.07480567
@@ -317,18 +314,19 @@ head(confint(boot, parm = "expert", type = "pointwise"))
 #> 4          expert (Intercept) component1 0.8500000 -1.0547571 0.04586277
 #> 5          expert (Intercept) component2 0.1500000  1.1291292 0.09950992
 #> 6          expert (Intercept) component2 0.3833333  0.8243641 0.02707169
-#>        lower      upper      type level n_successful
-#> 1 -0.3498149 -0.2205795 pointwise  0.95            6
-#> 2 -0.5316861 -0.3408192 pointwise  0.95            6
-#> 3 -0.8940630 -0.7301069 pointwise  0.95            6
-#> 4 -1.1636195 -1.0565103 pointwise  0.95            6
-#> 5  0.9718077  1.1824375 pointwise  0.95            6
-#> 6  0.8350992  0.8974524 pointwise  0.95            6
+#>        lower      upper         type level n_successful
+#> 1 -0.4517064 -0.1891789 simultaneous  0.95            6
+#> 2 -0.5876723 -0.1751209 simultaneous  0.95            6
+#> 3 -1.0799411 -0.7302433 simultaneous  0.95            6
+#> 4 -1.1812231 -0.9282911 simultaneous  0.95            6
+#> 5  0.7797917  1.4784667 simultaneous  0.95            6
+#> 6  0.7293268  0.9194014 simultaneous  0.95            6
 ```
 
 </div>
 
-`plot_inference()` visualizes bootstrap intervals directly.
+`plot_inference()` visualizes bootstrap intervals directly. Here we
+request simultaneous bootstrap bands for the coefficient paths.
 
 <div id="cb13" class="sourceCode">
 
@@ -336,7 +334,7 @@ head(confint(boot, parm = "expert", type = "pointwise"))
 plot_inference(
   boot,
   coefficient_set = "expert",
-  type = "pointwise",
+  type = "simultaneous",
   level = 0.95
 )
 ```
@@ -376,159 +374,6 @@ selection$best_bandwidth
 ```
 
 </div>
-
-</div>
-
-<div class="section level2">
-
-## Binomial responses
-
-For Bernoulli responses, the response column must be 0/1. Expert
-coefficients are on the logit success-probability scale. Predictions
-with `type = "mean"` return marginal success probabilities.
-
-<div id="cb15" class="sourceCode">
-
-``` r
-binom <- simulate_vcmoe_binomial(
-  n = 140,
-  k = 2,
-  seed = 11,
-  trials = 1,
-  separation = 1.6
-)
-
-binom_fit <- vcmoe_fit(
-  y ~ z1 | x1,
-  data = binom$data,
-  u = "u",
-  family = "binomial",
-  k = 2,
-  bandwidth = 0.40,
-  u_grid = seq(0.15, 0.85, length.out = 4),
-  control = list(maxit = 50, n_starts = 1, seed = 12, warn_ambiguous = FALSE)
-)
-
-head(predict(binom_fit, type = "mean"))
-#> [1] 0.5597817 0.5669232 0.5976283 0.5621652 0.5612603 0.5644602
-head(predict(binom_fit, type = "posterior"))
-#>           [,1]      [,2]
-#> [1,] 0.5251617 0.4748383
-#> [2,] 0.5175076 0.4824924
-#> [3,] 0.3058945 0.6941055
-#> [4,] 0.3968424 0.6031576
-#> [5,] 0.6776390 0.3223610
-#> [6,] 0.3947536 0.6052464
-vcmoe_diagnostics(binom_fit)[, c("u", "converged", "ambiguous", "effective_n")]
-#>           u converged ambiguous effective_n
-#> 1 0.1500000     FALSE     FALSE    80.43470
-#> 2 0.3833333      TRUE      TRUE   104.30305
-#> 3 0.6166667      TRUE     FALSE    87.49882
-#> 4 0.8500000      TRUE     FALSE    53.78913
-```
-
-</div>
-
-Grouped Binomial data use the standard R two-column response form,
-`cbind(success, failure)`.
-
-<div id="cb16" class="sourceCode">
-
-``` r
-grouped <- simulate_vcmoe_binomial(
-  n = 140,
-  k = 2,
-  seed = 13,
-  trials = 8,
-  separation = 1.6
-)
-
-grouped_fit <- vcmoe_fit(
-  cbind(success, failure) ~ z1 | x1,
-  data = grouped$data,
-  u = "u",
-  family = "binomial",
-  k = 2,
-  bandwidth = 0.40,
-  u_grid = seq(0.15, 0.85, length.out = 4),
-  control = list(maxit = 50, n_starts = 1, seed = 14, warn_ambiguous = FALSE)
-)
-
-coef(grouped_fit, "expert")[, , "z1"]
-#>             component
-#> u            component1  component2
-#>   0.15        0.6096972  0.08520915
-#>   0.38333333  0.5940746  0.02180605
-#>   0.61666667  0.7220808 -0.16229154
-#>   0.85        0.8233301 -0.33230528
-head(predict(grouped_fit, type = "mean"))
-#> [1] 0.5703339 0.5377196 0.5544001 0.3953660 0.6255196 0.3936642
-```
-
-</div>
-
-</div>
-
-<div class="section level2">
-
-## Negative-Binomial count responses
-
-For count data, use `family = "negative-binomial"`. Expert coefficients
-are on the log mean count scale. Library size or size factors should
-enter through an expert-side offset, for example
-`offset(log_size_factor)`.
-
-<div id="cb17" class="sourceCode">
-
-``` r
-nb <- simulate_vcmoe_negbin(
-  n = 140,
-  k = 2,
-  seed = 21,
-  separation = 1.6
-)
-
-nb_fit <- vcmoe_fit(
-  y ~ z1 + offset(log_size_factor) | x1,
-  data = nb$data,
-  u = "u",
-  family = "negative-binomial",
-  k = 2,
-  bandwidth = 0.45,
-  u_grid = seq(0.15, 0.85, length.out = 4),
-  control = list(maxit = 50, n_starts = 1, seed = 22, warn_ambiguous = FALSE)
-)
-
-coef(nb_fit, "expert")[, , "z1"]
-#>             component
-#> u             component1  component2
-#>   0.15       -0.90690491 -0.09620458
-#>   0.38333333  0.03034786 -0.09363928
-#>   0.61666667  0.28051808 -0.29935311
-#>   0.85       -0.01296923  0.75449297
-coef(nb_fit, "theta")
-#>             component
-#> u             component1 component2
-#>   0.15       9999.265173 9999.29158
-#>   0.38333333    6.118580   23.38157
-#>   0.61666667    2.891041 9999.20678
-#>   0.85          9.654845 9999.42459
-head(predict(nb_fit, type = "mean"))
-#> [1] 6.075218 4.790164 6.031515 4.255975 7.678395 7.951932
-vcmoe_diagnostics(nb_fit)[, c("u", "converged", "ambiguous", "effective_n")]
-#>                    u converged ambiguous effective_n
-#> 0.15       0.1500000      TRUE     FALSE    59.62464
-#> 0.38333333 0.3833333     FALSE     FALSE    89.68903
-#> 0.61666667 0.6166667     FALSE     FALSE   100.34682
-#> 0.85       0.8500000     FALSE     FALSE    86.15791
-```
-
-</div>
-
-The same `vcmoe_confband()` interface can be used for Binomial and
-Negative-Binomial fits. This introductory tutorial only visualizes
-confidence bands for the Gaussian example, where the interpretation is
-simplest.
 
 </div>
 

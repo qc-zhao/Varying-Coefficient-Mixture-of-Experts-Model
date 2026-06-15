@@ -1,8 +1,8 @@
 ---
-title: "VCMoE Tutorial: Gaussian Inference and Count Models"
+title: "Gaussian VCMoE Tutorial"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{VCMoE Tutorial: Gaussian Inference and Count Models}
+  %\VignetteIndexEntry{Gaussian VCMoE Tutorial}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -18,11 +18,9 @@ knitr::opts_chunk$set(
 )
 ```
 
-This tutorial gives a compact workflow for using `VCMoE`. The Gaussian example
-is the main walk-through because it shows fitting, diagnostics, coefficient
-plots, analytic simultaneous confidence bands, and bootstrap inference. The
-Binomial and Negative-Binomial examples use the same model interface and focus
-on response format, prediction scale, and diagnostics.
+This tutorial gives a compact Gaussian workflow for using `VCMoE`: simulation,
+fitting, diagnostics, coefficient plots, analytic simultaneous confidence
+bands, and bootstrap inference.
 
 ## Installation from GitHub
 
@@ -182,16 +180,17 @@ boot <- vcmoe_bootstrap(
 )
 
 boot
-head(confint(boot, parm = "expert", type = "pointwise"))
+head(confint(boot, parm = "expert", type = "simultaneous"))
 ```
 
-`plot_inference()` visualizes bootstrap intervals directly.
+`plot_inference()` visualizes bootstrap intervals directly. Here we request
+simultaneous bootstrap bands for the coefficient paths.
 
 ```{r gaussian-bootstrap-plot}
 plot_inference(
   boot,
   coefficient_set = "expert",
-  type = "pointwise",
+  type = "simultaneous",
   level = 0.95
 )
 ```
@@ -219,96 +218,3 @@ selection <- vcmoe_select_bandwidth(
 selection
 selection$best_bandwidth
 ```
-
-## Binomial responses
-
-For Bernoulli responses, the response column must be 0/1. Expert coefficients
-are on the logit success-probability scale. Predictions with `type = "mean"`
-return marginal success probabilities.
-
-```{r binomial-bernoulli}
-binom <- simulate_vcmoe_binomial(
-  n = 140,
-  k = 2,
-  seed = 11,
-  trials = 1,
-  separation = 1.6
-)
-
-binom_fit <- vcmoe_fit(
-  y ~ z1 | x1,
-  data = binom$data,
-  u = "u",
-  family = "binomial",
-  k = 2,
-  bandwidth = 0.40,
-  u_grid = seq(0.15, 0.85, length.out = 4),
-  control = list(maxit = 50, n_starts = 1, seed = 12, warn_ambiguous = FALSE)
-)
-
-head(predict(binom_fit, type = "mean"))
-head(predict(binom_fit, type = "posterior"))
-vcmoe_diagnostics(binom_fit)[, c("u", "converged", "ambiguous", "effective_n")]
-```
-
-Grouped Binomial data use the standard R two-column response form,
-`cbind(success, failure)`.
-
-```{r binomial-grouped}
-grouped <- simulate_vcmoe_binomial(
-  n = 140,
-  k = 2,
-  seed = 13,
-  trials = 8,
-  separation = 1.6
-)
-
-grouped_fit <- vcmoe_fit(
-  cbind(success, failure) ~ z1 | x1,
-  data = grouped$data,
-  u = "u",
-  family = "binomial",
-  k = 2,
-  bandwidth = 0.40,
-  u_grid = seq(0.15, 0.85, length.out = 4),
-  control = list(maxit = 50, n_starts = 1, seed = 14, warn_ambiguous = FALSE)
-)
-
-coef(grouped_fit, "expert")[, , "z1"]
-head(predict(grouped_fit, type = "mean"))
-```
-
-## Negative-Binomial count responses
-
-For count data, use `family = "negative-binomial"`. Expert coefficients are on
-the log mean count scale. Library size or size factors should enter through an
-expert-side offset, for example `offset(log_size_factor)`.
-
-```{r negbin}
-nb <- simulate_vcmoe_negbin(
-  n = 140,
-  k = 2,
-  seed = 21,
-  separation = 1.6
-)
-
-nb_fit <- vcmoe_fit(
-  y ~ z1 + offset(log_size_factor) | x1,
-  data = nb$data,
-  u = "u",
-  family = "negative-binomial",
-  k = 2,
-  bandwidth = 0.45,
-  u_grid = seq(0.15, 0.85, length.out = 4),
-  control = list(maxit = 50, n_starts = 1, seed = 22, warn_ambiguous = FALSE)
-)
-
-coef(nb_fit, "expert")[, , "z1"]
-coef(nb_fit, "theta")
-head(predict(nb_fit, type = "mean"))
-vcmoe_diagnostics(nb_fit)[, c("u", "converged", "ambiguous", "effective_n")]
-```
-
-The same `vcmoe_confband()` interface can be used for Binomial and
-Negative-Binomial fits. This introductory tutorial only visualizes confidence
-bands for the Gaussian example, where the interpretation is simplest.

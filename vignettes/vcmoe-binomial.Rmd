@@ -1,0 +1,126 @@
+---
+title: "Binomial VCMoE Tutorial"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Binomial VCMoE Tutorial}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 4.5,
+  message = FALSE,
+  warning = FALSE
+)
+```
+
+This tutorial shows the Binomial family in `VCMoE`. Expert coefficients are on
+the logit success-probability scale, and `predict(type = "mean")` returns the
+marginal success probability.
+
+The worked example uses grouped Binomial data because the repeated trials make
+the latent components visually clearer than a very small Bernoulli example.
+Bernoulli data use the same syntax with a 0/1 response column.
+
+```{r packages}
+library(VCMoE)
+```
+
+## Simulate grouped Binomial data
+
+```{r simulate}
+set.seed(52)
+
+sim <- simulate_vcmoe_binomial(
+  n = 300,
+  k = 2,
+  seed = 52,
+  trials = 30,
+  separation = 2.5,
+  scenario = "well_separated"
+)
+
+head(sim$data)
+summary(sim$data$success / sim$data$trials)
+```
+
+Grouped Binomial responses use the standard R two-column response form:
+`cbind(success, failure)`.
+
+```{r fit}
+fit <- vcmoe_fit(
+  cbind(success, failure) ~ z1 | x1,
+  data = sim$data,
+  u = "u",
+  family = "binomial",
+  k = 2,
+  bandwidth = 0.50,
+  u_grid = seq(0.15, 0.85, length.out = 5),
+  control = list(maxit = 100, n_starts = 2, seed = 53, warn_ambiguous = FALSE)
+)
+
+fit
+```
+
+## Coefficients and predictions
+
+```{r coefficients}
+coef(fit, "expert")[, , "z1"]
+```
+
+Component-specific predictions are success probabilities, and the marginal mean
+is the component-probability-weighted success probability.
+
+```{r predictions}
+head(predict(fit, type = "component"))
+head(predict(fit, type = "mean"))
+head(predict(fit, type = "posterior"))
+```
+
+The posterior probabilities are intentionally sharp in this tutorial example,
+so the component assignment is easy to see.
+
+```{r posterior-confidence}
+post <- predict(fit, type = "posterior")
+mean(apply(post, 1, max))
+```
+
+## Diagnostics and plots
+
+```{r diagnostics}
+diagnostics <- vcmoe_diagnostics(fit)
+diagnostics[, c("u", "converged", "ambiguous", "posterior_entropy", "effective_n")]
+```
+
+```{r coefficient-plot}
+plot_coefficients(fit, "expert")
+```
+
+```{r posterior-plot}
+plot_posterior(fit)
+```
+
+## Bernoulli response format
+
+For Bernoulli data, use a single 0/1 response column:
+
+```{r bernoulli-format, eval=FALSE}
+bern <- simulate_vcmoe_binomial(n = 300, k = 2, trials = 1)
+
+bern_fit <- vcmoe_fit(
+  y ~ z1 | x1,
+  data = bern$data,
+  u = "u",
+  family = "binomial",
+  k = 2,
+  bandwidth = 0.50
+)
+```
+
+The Bernoulli model has the same interpretation, but the grouped example above
+is cleaner for a short tutorial because each observation carries more Binomial
+information.

@@ -13,8 +13,12 @@ navbar:
     articles:
       text: Tutorials
       menu:
-      - text: Gaussian inference and count models
+      - text: Gaussian inference
         href: articles/vcmoe-gaussian-no-offset.html
+      - text: Binomial model
+        href: articles/vcmoe-binomial.html
+      - text: Negative-Binomial model
+        href: articles/vcmoe-negbin.html
     reference:
       text: Reference
       href: reference/index.html
@@ -58,3 +62,5 @@ articles:
   navbar: Tutorials
   contents:
   - vcmoe-gaussian-no-offset
+  - vcmoe-binomial
+  - vcmoe-negbin

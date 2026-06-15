@@ -1,0 +1,108 @@
+---
+title: "Negative-Binomial VCMoE Tutorial"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Negative-Binomial VCMoE Tutorial}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 4.5,
+  message = FALSE,
+  warning = FALSE
+)
+```
+
+This tutorial shows the Negative-Binomial family in `VCMoE`. Expert
+coefficients are on the log mean count scale. Library size or size factors
+should enter through an expert-side offset such as `offset(log_size_factor)`.
+
+```{r packages}
+library(VCMoE)
+```
+
+## Simulate count data
+
+```{r simulate}
+set.seed(61)
+
+sim <- simulate_vcmoe_negbin(
+  n = 320,
+  k = 2,
+  seed = 61,
+  separation = 3.0,
+  mean_count = 18,
+  scenario = "well_separated"
+)
+
+head(sim$data)
+summary(sim$data$y)
+```
+
+## Fit the model
+
+The offset is part of the expert formula, not a separate argument. It controls
+library-size variation before interpreting the component-specific coefficients.
+
+```{r fit}
+fit <- vcmoe_fit(
+  y ~ z1 + offset(log_size_factor) | x1,
+  data = sim$data,
+  u = "u",
+  family = "negative-binomial",
+  k = 2,
+  bandwidth = 0.60,
+  u_grid = seq(0.15, 0.85, length.out = 5),
+  control = list(
+    maxit = 120,
+    n_starts = 2,
+    seed = 62,
+    warn_ambiguous = FALSE,
+    ridge = 1e-4,
+    negbin_theta_ridge = 0.05,
+    negbin_theta_target = 8
+  )
+)
+
+fit
+```
+
+## Coefficients, dispersion, and predictions
+
+```{r coefficients}
+coef(fit, "expert")[, , "z1"]
+coef(fit, "theta")
+```
+
+Component-specific predictions and marginal means are on the count scale.
+
+```{r predictions}
+head(predict(fit, type = "component"))
+head(predict(fit, type = "mean"))
+head(predict(fit, type = "posterior"))
+```
+
+```{r posterior-confidence}
+post <- predict(fit, type = "posterior")
+mean(apply(post, 1, max))
+```
+
+## Diagnostics and plots
+
+```{r diagnostics}
+diagnostics <- vcmoe_diagnostics(fit)
+diagnostics[, c("u", "converged", "ambiguous", "posterior_entropy", "effective_n")]
+```
+
+```{r coefficient-plot}
+plot_coefficients(fit, "expert")
+```
+
+```{r posterior-plot}
+plot_posterior(fit)
+```

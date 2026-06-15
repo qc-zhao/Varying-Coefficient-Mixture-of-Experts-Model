@@ -85,13 +85,18 @@ plot_coefficients(fit)
 
 ## Tutorials
 
-Start with the main tutorial:
+Start with the Gaussian tutorial:
 
-[Gaussian inference and count-model tutorial](articles/vcmoe-gaussian-no-offset.html)
+[Gaussian inference tutorial](articles/vcmoe-gaussian-no-offset.html)
 
 The tutorial shows how to simulate Gaussian data, fit a VCMoE model, inspect
 posterior probabilities, plot analytic simultaneous confidence bands, run
-bootstrap inference, and fit Binomial and Negative-Binomial examples.
+bootstrap inference, and choose a bandwidth.
+
+Count-model tutorials are separate:
+
+- [Binomial model tutorial](articles/vcmoe-binomial.html)
+- [Negative-Binomial model tutorial](articles/vcmoe-negbin.html)
 
 ## Function Reference
 

@@ -10,8 +10,12 @@
 
 </div>
 
--   [VCMoE Tutorial: Gaussian Inference and Count
-    Models](https://qc-zhao.github.io/VCMoE/articles/vcmoe-gaussian-no-offset.md):
+-   [Gaussian VCMoE
+    Tutorial](https://qc-zhao.github.io/VCMoE/articles/vcmoe-gaussian-no-offset.md):
+-   [Binomial VCMoE
+    Tutorial](https://qc-zhao.github.io/VCMoE/articles/vcmoe-binomial.md):
+-   [Negative-Binomial VCMoE
+    Tutorial](https://qc-zhao.github.io/VCMoE/articles/vcmoe-negbin.md):
 
 </div>
 
