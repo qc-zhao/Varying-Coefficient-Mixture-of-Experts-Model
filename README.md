@@ -2,6 +2,7 @@
 
 <!-- badges: start -->
 [![R](https://img.shields.io/badge/R-package-276DC3.svg)](https://www.r-project.org/)
+[![CRAN status](https://www.r-pkg.org/badges/version/VCMoE)](https://cran.r-project.org/package=VCMoE)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Documentation](https://img.shields.io/badge/docs-pkgdown-blue.svg)](https://qc-zhao.github.io/VCMoE/)
 [![arXiv](https://img.shields.io/badge/arXiv-2601.01699-B31B1B.svg)](https://arxiv.org/abs/2601.01699)
@@ -22,7 +23,13 @@ such as time, pseudotime, dose, or spatial location.
 
 ## Installation
 
-Install the package from GitHub:
+Install the released version from CRAN:
+
+```r
+install.packages("VCMoE")
+```
+
+Install the development version from GitHub:
 
 ```r
 install.packages("remotes")
@@ -66,14 +73,16 @@ plot_coefficients(fit)
 
 ## Documentation
 
-The full documentation website includes a Gaussian simulation tutorial and
-function reference:
+The full documentation website includes Gaussian, Binomial, and
+Negative-Binomial tutorials plus the function reference:
 
 <https://qc-zhao.github.io/VCMoE/>
 
 Useful links:
 
 - [Gaussian simulation tutorial](https://qc-zhao.github.io/VCMoE/articles/vcmoe-gaussian-no-offset.html)
+- [Binomial VCMoE Tutorial](https://qc-zhao.github.io/VCMoE/articles/vcmoe-binomial.html)
+- [Negative-Binomial VCMoE Tutorial](https://qc-zhao.github.io/VCMoE/articles/vcmoe-negbin.html)
 - [Function reference](https://qc-zhao.github.io/VCMoE/reference/index.html)
 - [GitHub issues](https://github.com/qc-zhao/VCMoE/issues)
 
