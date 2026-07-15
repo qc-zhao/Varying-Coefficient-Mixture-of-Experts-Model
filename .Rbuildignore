@@ -3,7 +3,6 @@
 ^simulation_scenario\.md$
 ^ROADMAP\.md$
 ^simulation_results$
-^release-validation$
 ^docs$
 ^_pkgdown\.yml$
 ^pkgdown$

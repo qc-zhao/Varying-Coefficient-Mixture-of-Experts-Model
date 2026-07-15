@@ -1,2 +1,0 @@
-"release_version","cases","cases_passed","fit_successes","finite_prediction_cases","confband_successes","bootstrap_engine_preserved_cases","converged_nulls","correctly_blocked_nonconverged_nulls","release_gate"
-"0.2.0",4,4,4,4,4,4,4,0,"PASS"

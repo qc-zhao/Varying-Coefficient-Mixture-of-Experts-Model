@@ -53,8 +53,6 @@
 
 -   Version 0.2.0 remains a single-response package for Gaussian,
     Binomial, and Negative-Binomial models with 2 through 10 components.
--   Private multi-response research functionality is not part of this
-    release.
 
 </div>
 
