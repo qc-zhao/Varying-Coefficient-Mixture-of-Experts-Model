@@ -4,8 +4,7 @@
 
 <div class="ref-description section level2">
 
-Runs parametric bootstrap inference for a fitted Gaussian, Binomial, or
-Negative-Binomial VCMoE model with `k = 2:10`.
+Parametric bootstrap inference for a VCMoE fit
 
 </div>
 
@@ -40,26 +39,23 @@ vcmoe_bootstrap(
 
 -   fit:
 
-    A fitted `vcmoe` object. Bootstrap inference supports `k = 2:10`.
+    A `vcmoe` fit with `k = 2:10`.
 
 -   data:
 
-    Original data frame used to fit `fit`. The function resamples from
-    `data[fit$rows_used, ]`.
+    Original data frame used to fit `fit`.
 
 -   u:
 
-    Optional original `u` values or column name. If `NULL`, the stored
-    `u` column from `fit` is reused when available.
+    Optional original `u` values or column name.
 
 -   B:
 
-    Number of parametric bootstrap replicates.
+    Number of bootstrap replicates.
 
 -   coefficient\_set:
 
-    Coefficient sets to store and summarize: `"expert"`, `"gating"`, or
-    both.
+    Coefficient sets to store.
 
 -   seed:
 
@@ -67,14 +63,11 @@ vcmoe_bootstrap(
 
 -   control:
 
-    Named list passed to bootstrap refits. Bandwidth is not reselected
-    inside bootstrap v0.
+    Control overrides for bootstrap refits.
 
 -   min\_successful:
 
-    Minimum number of successful replicates expected for reliable
-    inference. The object is returned when at least two replicates
-    succeed, but a warning is recorded below this threshold.
+    Minimum successful replicates for reliable inference.
 
 -   keep\_fits:
 
@@ -82,7 +75,7 @@ vcmoe_bootstrap(
 
 -   verbose:
 
-    Whether to print replicate progress messages.
+    Whether to message progress.
 
 </div>
 
@@ -90,9 +83,7 @@ vcmoe_bootstrap(
 
 ## Value
 
-An object of class `vcmoe_bootstrap` with fields `fit`, `replicates`,
-`replicate_summary`, `alignment_summary`, `settings`, `warnings`, and
-optionally `fits`.
+An object of class `vcmoe_bootstrap`.
 
 </div>
 
@@ -100,27 +91,10 @@ optionally `fits`.
 
 ## Details
 
-For Gaussian fits, each bootstrap data set draws a latent component from
-the fitted gating probabilities and then draws the response from the
-selected component Normal distribution. For Binomial fits, each
-bootstrap data set draws success counts from the selected component
-success probability. For Negative-Binomial fits, each bootstrap data set
-draws counts from the selected component mean and theta. Bernoulli and
-grouped `cbind(success, failure)` response formats are preserved for
-Binomial fits.
-
-Each bootstrap replicate is refit with the same formula, family, number
-of components, bandwidth, `u_grid`, and label strategy as the reference
-fit. After the usual within-grid label alignment, one global component
-permutation matches the bootstrap coefficient paths back to the
-reference fit. Ambiguous bootstrap-to-reference matches are recorded in
-`alignment_summary`. Exact permutation matching is used for small `k`;
-assignment-based matching is used when exhaustive permutation is
-infeasible.
-
-Binomial expert coefficients and intervals are on the logit coefficient
-scale. Negative-Binomial expert coefficients and intervals are on the
-log mean count scale.
+Bootstrap refits preserve the reference fitting engine. A joint-path
+reference is therefore refitted with
+`vcmoe_fit(..., engine = "joint_path_em")` rather than silently falling
+back to local-grid EM.
 
 </div>
 

@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">VCMoE</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -37,6 +37,7 @@
 <li><a class="dropdown-item" href="../articles/vcmoe-gaussian-no-offset.html">Gaussian inference</a></li>
     <li><a class="dropdown-item" href="../articles/vcmoe-binomial.html">Binomial model</a></li>
     <li><a class="dropdown-item" href="../articles/vcmoe-negbin.html">Negative-Binomial model</a></li>
+    <li><a class="dropdown-item" href="../articles/vcmoe-joint-path.html">Joint-path EM</a></li>
   </ul>
 </li>
       </ul>
@@ -202,8 +203,10 @@
 <span><span class="co">#&gt; VCMoE analytic-style confidence bands</span></span>
 <span><span class="co">#&gt;   family: gaussian</span></span>
 <span><span class="co">#&gt;   components: 2</span></span>
+<span><span class="co">#&gt;   engine: local_grid_em</span></span>
 <span><span class="co">#&gt;   type: simultaneous</span></span>
 <span><span class="co">#&gt;   level: 0.95</span></span>
+<span><span class="co">#&gt;   coverage theory: local_likelihood_asymptotic_with_bias_and_boundary_caveats</span></span>
 <span><span class="co">#&gt;   interval rows ok: 32/32</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">band</span><span class="op">$</span><span class="va">intervals</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
 <span>  <span class="st">"u"</span>, <span class="st">"component"</span>, <span class="st">"term"</span>, <span class="st">"block"</span>, <span class="st">"estimate"</span>,</span>

@@ -1,0 +1,4 @@
+"case","grid_id","u","loglik","converged","iterations","selected_start","permutation"
+"binomial",1,0.25,-351.244492584591,TRUE,14,2,"1,2"
+"binomial",2,0.5,-373.06417464127,TRUE,14,1,"1,2"
+"binomial",3,0.75,-336.822481585465,TRUE,15,3,"2,1"

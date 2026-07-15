@@ -1,0 +1,4 @@
+"case","grid_id","u","loglik","converged","iterations","selected_start","permutation"
+"gaussian",1,0.25,-177.264947712166,TRUE,14,2,"2,1"
+"gaussian",2,0.5,-185.31062370635,TRUE,18,2,"2,1"
+"gaussian",3,0.75,-163.326721800508,TRUE,29,2,"1,2"

@@ -45,6 +45,140 @@
   if (is.null(x)) y else x
 }
 
+.vcmoe_joint_path_engine_id <- "joint_path_em"
+
+.vcmoe_joint_path_control <- function(control) {
+  joint_path_defaults <- list(
+    progress_every = 1L,
+    allow_dense_u_grid = FALSE,
+    joint_path_dense_grid_limit = 100L,
+    joint_path_dense_grid_ratio = 0.2
+  )
+  .vcmoe_default_control(
+    utils::modifyList(joint_path_defaults, control %||% list())
+  )
+}
+
+.vcmoe_progress_schema <- c(
+  "timestamp_utc", "event", "status", "family", "k", "n", "bandwidth",
+  "grid_id", "n_grid", "u", "start_id", "n_starts", "iteration", "maxit",
+  "elapsed_seconds", "grid_elapsed_seconds", "start_elapsed_seconds",
+  "loglik", "loglik_delta", "converged", "selected_start", "error_message"
+)
+
+.vcmoe_progress_setup <- function(progress) {
+  if (is.null(progress) || identical(progress, FALSE)) {
+    return(list(enabled = FALSE))
+  }
+  if (isTRUE(progress)) {
+    return(list(
+      enabled = TRUE,
+      mode = "message",
+      path = NULL,
+      start_time = proc.time()[["elapsed"]]
+    ))
+  }
+  if (is.character(progress) && length(progress) == 1L && nzchar(progress)) {
+    parent <- dirname(progress)
+    if (!dir.exists(parent)) {
+      dir.create(parent, recursive = TRUE, showWarnings = FALSE)
+    }
+    if (!dir.exists(parent)) {
+      stop("Could not create progress log directory: ", parent, call. = FALSE)
+    }
+    return(list(
+      enabled = TRUE,
+      mode = "file",
+      path = progress,
+      start_time = proc.time()[["elapsed"]]
+    ))
+  }
+  stop("`progress` must be NULL, FALSE, TRUE, or a single CSV file path.", call. = FALSE)
+}
+
+.vcmoe_progress_due <- function(control, iteration, converged = FALSE) {
+  every <- suppressWarnings(as.integer(control$progress_every %||% 1L))
+  if (!is.finite(every) || every < 1L) {
+    every <- 1L
+  }
+  iteration == 1L || iteration %% every == 0L ||
+    isTRUE(converged) || iteration >= as.integer(control$maxit)
+}
+
+.vcmoe_progress_log <- function(progress, event, status = NA_character_,
+                                family = NA_character_, k = NA_integer_,
+                                n = NA_integer_, bandwidth = NA_real_,
+                                grid_id = NA_integer_, n_grid = NA_integer_,
+                                u = NA_real_, start_id = NA_integer_,
+                                n_starts = NA_integer_, iteration = NA_integer_,
+                                maxit = NA_integer_, grid_start_time = NA_real_,
+                                start_start_time = NA_real_, loglik = NA_real_,
+                                loglik_delta = NA_real_, converged = NA,
+                                selected_start = NA_integer_,
+                                error_message = NA_character_) {
+  if (!is.list(progress) || !isTRUE(progress$enabled)) {
+    return(invisible(NULL))
+  }
+  now <- proc.time()[["elapsed"]]
+  elapsed <- now - progress$start_time
+  grid_elapsed <- if (is.finite(grid_start_time)) now - grid_start_time else NA_real_
+  start_elapsed <- if (is.finite(start_start_time)) now - start_start_time else NA_real_
+  row <- data.frame(
+    timestamp_utc = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
+    event = event,
+    status = status,
+    family = family,
+    k = k,
+    n = n,
+    bandwidth = bandwidth,
+    grid_id = grid_id,
+    n_grid = n_grid,
+    u = u,
+    start_id = start_id,
+    n_starts = n_starts,
+    iteration = iteration,
+    maxit = maxit,
+    elapsed_seconds = elapsed,
+    grid_elapsed_seconds = grid_elapsed,
+    start_elapsed_seconds = start_elapsed,
+    loglik = loglik,
+    loglik_delta = loglik_delta,
+    converged = converged,
+    selected_start = selected_start,
+    error_message = error_message,
+    stringsAsFactors = FALSE
+  )
+  row <- row[.vcmoe_progress_schema]
+
+  if (identical(progress$mode, "message")) {
+    message(sprintf(
+      "vcmoe progress: %s grid=%s/%s start=%s/%s iter=%s/%s loglik=%s status=%s elapsed=%.1fs",
+      event,
+      ifelse(is.na(grid_id), "-", grid_id),
+      ifelse(is.na(n_grid), "-", n_grid),
+      ifelse(is.na(start_id), "-", start_id),
+      ifelse(is.na(n_starts), "-", n_starts),
+      ifelse(is.na(iteration), "-", iteration),
+      ifelse(is.na(maxit), "-", maxit),
+      ifelse(is.na(loglik), "-", signif(loglik, 6)),
+      ifelse(is.na(status), "-", status),
+      elapsed
+    ))
+  } else if (identical(progress$mode, "file")) {
+    append <- file.exists(progress$path) && file.info(progress$path)$size > 0
+    utils::write.table(
+      row,
+      file = progress$path,
+      sep = ",",
+      row.names = FALSE,
+      col.names = !append,
+      append = append,
+      na = ""
+    )
+  }
+  invisible(NULL)
+}
+
 .collapse_deparse <- function(x) {
   paste(deparse(x), collapse = "")
 }

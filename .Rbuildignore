@@ -3,10 +3,12 @@
 ^simulation_scenario\.md$
 ^ROADMAP\.md$
 ^simulation_results$
+^release-validation$
 ^docs$
 ^_pkgdown\.yml$
 ^pkgdown$
 ^.*\.Rproj$
 ^\.Rproj\.user$
 ^\.gitignore$
+^\.git$
 (^|/)\\.DS_Store$

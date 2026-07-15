@@ -250,6 +250,14 @@
   out
 }
 
+.vcmoe_bootstrap_refit <- function(reference_fit, fit_args) {
+  engine_id <- reference_fit$engine_id %||% "local_grid_em"
+  if (identical(engine_id, "joint_path_em")) {
+    fit_args$engine <- "joint_path_em"
+  }
+  do.call(vcmoe_fit, fit_args)
+}
+
 #' Parametric bootstrap inference for a VCMoE fit
 #'
 #' @param fit A `vcmoe` fit with `k = 2:10`.
@@ -262,6 +270,10 @@
 #' @param min_successful Minimum successful replicates for reliable inference.
 #' @param keep_fits Whether to store successful bootstrap fit objects.
 #' @param verbose Whether to message progress.
+#' @details Bootstrap refits preserve the reference fitting engine. A
+#'   joint-path reference is therefore refitted with
+#'   `vcmoe_fit(..., engine = "joint_path_em")` rather than silently falling
+#'   back to local-grid EM.
 #' @return An object of class `vcmoe_bootstrap`.
 #' @export
 vcmoe_bootstrap <- function(fit, data, u = NULL, B = 200L,
@@ -308,7 +320,7 @@ vcmoe_bootstrap <- function(fit, data, u = NULL, B = 200L,
     start_time <- proc.time()[["elapsed"]]
     result <- tryCatch({
       boot_data <- .simulate_bootstrap_response(fit, base_data, u_info$values)
-      boot_fit <- suppressWarnings(vcmoe_fit(
+      fit_args <- list(
         formula = fit$formula,
         data = boot_data,
         u = u_info$refit,
@@ -320,7 +332,8 @@ vcmoe_bootstrap <- function(fit, data, u = NULL, B = 200L,
         label = .vcmoe_refit_label(fit),
         u_scale = fit$u_scale %||% fit$u_scaling$method %||% "unit",
         parameterization = fit$parameterization_id %||% vcmoe_parameterization(fit)$id %||% "a1_epanechnikov_scaled"
-      ))
+      )
+      boot_fit <- suppressWarnings(.vcmoe_bootstrap_refit(fit, fit_args))
       match <- .bootstrap_reference_permutation(fit, boot_fit, coefficient_set)
       aligned <- .bootstrap_aligned_coefficients(boot_fit, match$permutation, coefficient_set)
       list(fit = boot_fit, coefficients = aligned, match = match)
@@ -414,7 +427,8 @@ vcmoe_bootstrap <- function(fit, data, u = NULL, B = 200L,
       u_grid = fit$u_grid,
       coefficient_set = coefficient_set,
       min_successful = min_successful,
-      keep_fits = keep_fits
+      keep_fits = keep_fits,
+      engine_id = fit$engine_id %||% "local_grid_em"
     ),
     warnings = unique(warnings),
     fits = if (isTRUE(keep_fits)) stored_fits else NULL

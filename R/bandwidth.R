@@ -11,14 +11,18 @@
 #'   of the default bandwidth.
 #' @param folds Number of random cross-validation folds.
 #' @param u_grid Grid where coefficient functions are estimated.
-#' @param control Named list passed to `vcmoe_fit()`.
-#' @param label Label strategy passed to `vcmoe_fit()`.
-#' @param u_scale `u` scaling strategy passed to `vcmoe_fit()`.
-#' @param parameterization Estimator convention passed to `vcmoe_fit()`.
+#' @param control Named list passed to the selected fitting engine.
+#' @param label Label strategy passed to the selected fitting engine.
+#' @param u_scale `u` scaling strategy passed to the selected fitting engine.
+#' @param parameterization Estimator convention passed to the selected fitting
+#'   engine.
 #' @param seed Optional random seed for fold assignment and, when
 #'   `control$seed` is absent, deterministic CV refits.
 #' @param refit Whether to refit the final model on all data using the selected
 #'   bandwidth.
+#' @param engine Fitting engine used for every cross-validation fold and the
+#'   optional final refit. The default `"local_grid_em"` preserves the 0.1.0
+#'   behavior; `"joint_path_em"` uses the joint-path engine of `vcmoe_fit()`.
 #' @return An object of class `vcmoe_bandwidth_selection`.
 #' @export
 vcmoe_select_bandwidth <- function(formula, data, u, k = 2L, family = "gaussian",
@@ -28,11 +32,13 @@ vcmoe_select_bandwidth <- function(formula, data, u, k = 2L, family = "gaussian"
                                    parameterization = "a1_epanechnikov_scaled",
                                    u_scale = c("unit", "none"),
                                    seed = NULL,
-                                   refit = TRUE) {
+                                   refit = TRUE,
+                                   engine = c("local_grid_em", "joint_path_em")) {
   family <- match.arg(family, c("gaussian", "binomial", "negative-binomial"))
   label <- match.arg(label, c("align", "global", "greedy"))
   parameterization <- match.arg(parameterization, "a1_epanechnikov_scaled")
   u_scale <- .vcmoe_validate_u_scale(u_scale)
+  engine <- match.arg(engine)
   k <- as.integer(k)
   if (k < 2L || k > 10L) {
     stop("`k` must be between 2 and 10.", call. = FALSE)
@@ -48,6 +54,23 @@ vcmoe_select_bandwidth <- function(formula, data, u, k = 2L, family = "gaussian"
   candidates <- .validate_bandwidth_grid(bandwidth_grid, default_bandwidth)
   u_grid_values <- .validate_selection_u_grid(u_grid, info$u_values)
   fold_id <- .make_cv_folds(n_complete, folds, seed)
+  if (identical(engine, "joint_path_em")) {
+    .validate_joint_path_cv_grid(
+      info$u_values,
+      u_grid_values,
+      fold_id,
+      .vcmoe_default_control(control),
+      warn_unique = !isTRUE(refit)
+    )
+    warning(
+      sprintf(
+        "Joint-path bandwidth selection will run %d candidate(s) x %d fold(s), plus the optional final refit; runtime scales with every joint-path fit.",
+        length(candidates),
+        folds
+      ),
+      call. = FALSE
+    )
+  }
 
   fold_results <- vector("list", length(candidates) * folds)
   result_id <- 1L
@@ -69,7 +92,8 @@ vcmoe_select_bandwidth <- function(formula, data, u, k = 2L, family = "gaussian"
         label = label,
         u_scale = u_scale,
         parameterization = parameterization,
-        seed = seed
+        seed = seed,
+        engine = engine
       )
       result_id <- result_id + 1L
     }
@@ -85,7 +109,8 @@ vcmoe_select_bandwidth <- function(formula, data, u, k = 2L, family = "gaussian"
   final_fit <- NULL
   if (isTRUE(refit)) {
     final_control <- .selection_fit_control(control, seed, bandwidth_id = 999L, fold = 999L)
-    final_fit <- vcmoe_fit(
+    final_fit <- .selection_fit_engine(
+      engine = engine,
       formula = formula,
       data = data,
       u = u,
@@ -120,6 +145,8 @@ vcmoe_select_bandwidth <- function(formula, data, u, k = 2L, family = "gaussian"
       criterion = "heldout_predictive_loglik",
       default_bandwidth = default_bandwidth,
       refit = refit,
+      engine = engine,
+      engine_id = engine,
       u_scale = u_scale,
       u_scaling = info$u_scaling,
       parameterization = parameterization
@@ -127,6 +154,29 @@ vcmoe_select_bandwidth <- function(formula, data, u, k = 2L, family = "gaussian"
   )
   class(out) <- "vcmoe_bandwidth_selection"
   out
+}
+
+.selection_fit_engine <- function(engine, ...) {
+  fit_args <- list(...)
+  switch(
+    engine,
+    local_grid_em = do.call(vcmoe_fit, fit_args),
+    joint_path_em = {
+      fit_args$engine <- "joint_path_em"
+      do.call(vcmoe_fit, fit_args)
+    },
+    stop("Unknown bandwidth-selection engine: ", engine, call. = FALSE)
+  )
+}
+
+.validate_joint_path_cv_grid <- function(u_values, u_grid, fold_id, control,
+                                         warn_unique = TRUE) {
+  training_n <- length(u_values) - max(tabulate(fold_id))
+  .joint_path_cost_guard(max(training_n, 1L), length(u_grid), control)
+  if (isTRUE(warn_unique)) {
+    .joint_path_unique_grid_warning(u_values, u_grid)
+  }
+  invisible(TRUE)
 }
 
 .bandwidth_selection_data_info <- function(formula, data, u, family, u_scale = "unit") {
@@ -223,12 +273,14 @@ vcmoe_select_bandwidth <- function(formula, data, u, k = 2L, family = "gaussian"
 
 .score_bandwidth_fold <- function(formula, data, u, family, k, bandwidth,
                                   bandwidth_id, fold, fold_id, complete_rows,
-                                  u_grid, control, label, u_scale, parameterization, seed) {
+                                  u_grid, control, label, u_scale, parameterization, seed,
+                                  engine) {
   validation_rows <- complete_rows[fold_id == fold]
   training_rows <- complete_rows[fold_id != fold]
   start_time <- proc.time()[["elapsed"]]
   fit <- tryCatch(
-    suppressWarnings(vcmoe_fit(
+    suppressWarnings(.selection_fit_engine(
+      engine = engine,
       formula = formula,
       data = data[training_rows, , drop = FALSE],
       u = .subset_u_for_rows(u, training_rows),
@@ -258,6 +310,8 @@ vcmoe_select_bandwidth <- function(formula, data, u, k = 2L, family = "gaussian"
       grid_points = length(u_grid),
       ambiguity_warnings = NA_integer_,
       runtime_seconds = runtime,
+      engine = engine,
+      engine_id = engine,
       stringsAsFactors = FALSE
     ))
   }
@@ -283,6 +337,8 @@ vcmoe_select_bandwidth <- function(formula, data, u, k = 2L, family = "gaussian"
       grid_points = length(fit$u_grid),
       ambiguity_warnings = length(fit$diagnostics$warnings),
       runtime_seconds = runtime,
+      engine = engine,
+      engine_id = fit$engine_id %||% "local_grid_em",
       stringsAsFactors = FALSE
     ))
   }
@@ -299,6 +355,8 @@ vcmoe_select_bandwidth <- function(formula, data, u, k = 2L, family = "gaussian"
     grid_points = length(fit$u_grid),
     ambiguity_warnings = length(fit$diagnostics$warnings),
     runtime_seconds = runtime,
+    engine = engine,
+    engine_id = fit$engine_id %||% "local_grid_em",
     stringsAsFactors = FALSE
   )
 }
@@ -378,6 +436,7 @@ vcmoe_select_bandwidth <- function(formula, data, u, k = 2L, family = "gaussian"
 #' @export
 print.vcmoe_bandwidth_selection <- function(x, ...) {
   cat("VCMoE bandwidth selection\n")
+  cat("  engine: ", x$settings$engine %||% "local_grid_em", "\n", sep = "")
   cat("  family: ", x$settings$family, "\n", sep = "")
   cat("  components: ", x$settings$k, "\n", sep = "")
   cat("  parameterization: ", x$settings$parameterization %||% "unknown", "\n", sep = "")

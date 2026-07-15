@@ -19,6 +19,8 @@ navbar:
         href: articles/vcmoe-binomial.html
       - text: Negative-Binomial model
         href: articles/vcmoe-negbin.html
+      - text: Joint-path EM
+        href: articles/vcmoe-joint-path.html
     reference:
       text: Reference
       href: reference/index.html
@@ -33,6 +35,7 @@ reference:
 - title: Fit and inspect models
   contents:
   - vcmoe_fit
+  - vcmoe_fit_reduced
   - coef.vcmoe
   - predict.vcmoe
   - vcmoe_diagnostics
@@ -64,3 +67,4 @@ articles:
   - vcmoe-gaussian-no-offset
   - vcmoe-binomial
   - vcmoe-negbin
+  - vcmoe-joint-path

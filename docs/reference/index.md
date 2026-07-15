@@ -11,6 +11,7 @@
 <div class="section level2">
 
 -   `vcmoe_fit()` : Fit a varying-coefficient mixture-of-experts model
+-   `vcmoe_fit_reduced()` : Fit a block-constant reduced VCMoE model
 -   `coef(<vcmoe>)` : Extract VCMoE coefficients
 -   `predict(<vcmoe>)` : Predict from a VCMoE fit
 -   `vcmoe_diagnostics()` : Summarize VCMoE fit diagnostics
@@ -52,8 +53,8 @@
     VCMoE coefficients
 -   `plot_inference()` : Plot bootstrap inference intervals
 -   `vcmoe_confband()` : Analytic-style confidence bands for a VCMoE fit
--   `vcmoe_glrt()` : Coefficient-specific GLRT for VCMoE coefficient
-    variation
+-   `vcmoe_glrt()` : Generalized likelihood-ratio test for VCMoE
+    coefficient variation
 
 </div>
 

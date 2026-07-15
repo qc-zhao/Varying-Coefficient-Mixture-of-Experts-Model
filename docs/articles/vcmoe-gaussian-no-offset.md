@@ -223,8 +223,10 @@ band
 #> VCMoE analytic-style confidence bands
 #>   family: gaussian
 #>   components: 2
+#>   engine: local_grid_em
 #>   type: simultaneous
 #>   level: 0.95
+#>   coverage theory: local_likelihood_asymptotic_with_bias_and_boundary_caveats
 #>   interval rows ok: 32/32
 head(band$intervals[, c(
   "u", "component", "term", "block", "estimate",

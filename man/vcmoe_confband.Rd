@@ -13,32 +13,29 @@ vcmoe_confband(
 )
 }
 \arguments{
-\item{fit}{A \code{vcmoe} fit.}
-\item{data}{Optional original data frame. The implementation uses
-\code{fit$fitted}; refit with \code{control = list(keep_data = TRUE)} if
+\item{fit}{A \code{vcmoe} fit with \code{k = 2:10}.}
+\item{data}{Optional original data frame. The current implementation uses
+the data stored in \code{fit$fitted}; refit with \code{keep_data = TRUE} if
 needed.}
 \item{level}{Confidence level.}
-\item{type}{Whether the convenience \code{lower} and \code{upper} columns use
-pointwise intervals or simultaneous bands.}
+\item{type}{Interval columns to expose as \code{lower} and \code{upper}.}
 \item{coefficient_set}{Coefficient blocks to return.}
 \item{strict}{Whether weak local fits should return blocked intervals.}
-\item{control}{Optional inference controls. HC0 is the only active covariance
-adjustment.}
+\item{control}{Optional development inference controls. HC0 is the only
+active covariance adjustment.}
 }
 \value{
-A \code{vcmoe_confband} object with \code{intervals}, \code{diagnostics}, and
-\code{settings}.
+A \code{vcmoe_confband} object with interval and diagnostic data frames.
 }
 \description{
-Computes HC0 analytic-style Epanechnikov path confidence bands for
-VCMoE fits with \code{k = 2:10} using the fitted Epanechnikov/scaled
-parameterization. High-k intervals are diagnostic-gated and should be
-interpreted with the returned block and Hessian diagnostics.
+Analytic-style confidence bands for a VCMoE fit
 }
 \details{
-The returned interval table includes pointwise and simultaneous columns,
-diagnostic status, block reasons, Hessian condition, effective local sample
-size, and SCB metadata. Binomial expert intervals are on the logit coefficient
-scale, Negative-Binomial expert intervals are on the log mean scale, and
-Negative-Binomial \code{theta} intervals are nuisance diagnostics.
+For \code{engine = "joint_path_em"}, the covariance follows the JASA
+observed local-likelihood asymptotic sandwich plug-in. It does not include
+shared-path, label-selection, or finite-grid cross-grid responsibility
+uncertainty. Joint-path convergence and the returned score-imbalance
+diagnostics should therefore be inspected. The returned metadata identifies
+the covariance target, estimator/covariance match, omitted uncertainty, and
+coverage-theory scope; no bias or boundary correction is applied.
 }

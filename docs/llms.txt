@@ -175,6 +175,7 @@ Model*. arXiv:2601.01699. <https://arxiv.org/abs/2601.01699>
 <div class="section level2">
 
 -   `vcmoe_fit()` : Fit a varying-coefficient mixture-of-experts model
+-   `vcmoe_fit_reduced()` : Fit a block-constant reduced VCMoE model
 -   `coef(<vcmoe>)` : Extract VCMoE coefficients
 -   `predict(<vcmoe>)` : Predict from a VCMoE fit
 -   `vcmoe_diagnostics()` : Summarize VCMoE fit diagnostics
@@ -216,8 +217,8 @@ Model*. arXiv:2601.01699. <https://arxiv.org/abs/2601.01699>
     VCMoE coefficients
 -   `plot_inference()` : Plot bootstrap inference intervals
 -   `vcmoe_confband()` : Analytic-style confidence bands for a VCMoE fit
--   `vcmoe_glrt()` : Coefficient-specific GLRT for VCMoE coefficient
-    variation
+-   `vcmoe_glrt()` : Generalized likelihood-ratio test for VCMoE
+    coefficient variation
 
 </div>
 
@@ -255,6 +256,8 @@ Model*. arXiv:2601.01699. <https://arxiv.org/abs/2601.01699>
     Tutorial](https://qc-zhao.github.io/VCMoE/articles/vcmoe-binomial.md):
 -   [Negative-Binomial VCMoE
     Tutorial](https://qc-zhao.github.io/VCMoE/articles/vcmoe-negbin.md):
+-   [Joint-Path
+    EM](https://qc-zhao.github.io/VCMoE/articles/vcmoe-joint-path.md):
 
 </div>
 

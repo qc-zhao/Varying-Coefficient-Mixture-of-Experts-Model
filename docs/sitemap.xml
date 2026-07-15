@@ -4,9 +4,12 @@
 <url><loc>https://qc-zhao.github.io/VCMoE/articles/index.html</loc></url>
 <url><loc>https://qc-zhao.github.io/VCMoE/articles/vcmoe-binomial.html</loc></url>
 <url><loc>https://qc-zhao.github.io/VCMoE/articles/vcmoe-gaussian-no-offset.html</loc></url>
+<url><loc>https://qc-zhao.github.io/VCMoE/articles/vcmoe-joint-path.html</loc></url>
 <url><loc>https://qc-zhao.github.io/VCMoE/articles/vcmoe-negbin.html</loc></url>
 <url><loc>https://qc-zhao.github.io/VCMoE/authors.html</loc></url>
 <url><loc>https://qc-zhao.github.io/VCMoE/index.html</loc></url>
+<url><loc>https://qc-zhao.github.io/VCMoE/news/index.html</loc></url>
+<url><loc>https://qc-zhao.github.io/VCMoE/reference/VCMoE-package.html</loc></url>
 <url><loc>https://qc-zhao.github.io/VCMoE/reference/coef.vcmoe.html</loc></url>
 <url><loc>https://qc-zhao.github.io/VCMoE/reference/confint.vcmoe_bootstrap.html</loc></url>
 <url><loc>https://qc-zhao.github.io/VCMoE/reference/index.html</loc></url>
@@ -22,6 +25,7 @@
 <url><loc>https://qc-zhao.github.io/VCMoE/reference/vcmoe_confband.html</loc></url>
 <url><loc>https://qc-zhao.github.io/VCMoE/reference/vcmoe_diagnostics.html</loc></url>
 <url><loc>https://qc-zhao.github.io/VCMoE/reference/vcmoe_fit.html</loc></url>
+<url><loc>https://qc-zhao.github.io/VCMoE/reference/vcmoe_fit_reduced.html</loc></url>
 <url><loc>https://qc-zhao.github.io/VCMoE/reference/vcmoe_gating_contrasts.html</loc></url>
 <url><loc>https://qc-zhao.github.io/VCMoE/reference/vcmoe_glrt.html</loc></url>
 <url><loc>https://qc-zhao.github.io/VCMoE/reference/vcmoe_parameterization.html</loc></url>
