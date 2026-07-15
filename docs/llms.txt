@@ -124,6 +124,9 @@ Start with the Gaussian tutorial:
 [Gaussian inference
 tutorial](https://qc-zhao.github.io/VCMoE/articles/vcmoe-gaussian-no-offset.md)
 
+[Joint-path EM
+tutorial](https://qc-zhao.github.io/VCMoE/articles/vcmoe-joint-path.md)
+
 The tutorial shows how to simulate Gaussian data, fit a VCMoE model,
 inspect posterior probabilities, plot analytic simultaneous confidence
 bands, run bootstrap inference, and choose a bandwidth.
