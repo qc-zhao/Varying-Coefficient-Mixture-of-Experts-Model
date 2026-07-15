@@ -4,10 +4,7 @@
 
 <div class="ref-description section level2">
 
-Computes HC0 analytic-style Epanechnikov path confidence bands for VCMoE
-fits with `k = 2:10` using the fitted Epanechnikov/scaled
-parameterization. High-k intervals are diagnostic-gated and should be
-interpreted with the returned block and Hessian diagnostics.
+Analytic-style confidence bands for a VCMoE fit
 
 </div>
 
@@ -39,12 +36,13 @@ vcmoe_confband(
 
 -   fit:
 
-    A `vcmoe` fit.
+    A `vcmoe` fit with `k = 2:10`.
 
 -   data:
 
-    Optional original data frame. The implementation uses `fit$fitted`;
-    refit with `control = list(keep_data = TRUE)` if needed.
+    Optional original data frame. The current implementation uses the
+    data stored in `fit$fitted`; refit with `keep_data = TRUE` if
+    needed.
 
 -   level:
 
@@ -52,8 +50,7 @@ vcmoe_confband(
 
 -   type:
 
-    Whether the convenience `lower` and `upper` columns use pointwise
-    intervals or simultaneous bands.
+    Interval columns to expose as `lower` and `upper`.
 
 -   coefficient\_set:
 
@@ -65,8 +62,8 @@ vcmoe_confband(
 
 -   control:
 
-    Optional inference controls. HC0 is the only active covariance
-    adjustment.
+    Optional development inference controls. HC0 is the only active
+    covariance adjustment.
 
 </div>
 
@@ -74,8 +71,7 @@ vcmoe_confband(
 
 ## Value
 
-A `vcmoe_confband` object with `intervals`, `diagnostics`, and
-`settings`.
+A `vcmoe_confband` object with interval and diagnostic data frames.
 
 </div>
 
@@ -83,12 +79,14 @@ A `vcmoe_confband` object with `intervals`, `diagnostics`, and
 
 ## Details
 
-The returned interval table includes pointwise and simultaneous columns,
-diagnostic status, block reasons, Hessian condition, effective local
-sample size, and SCB metadata. Binomial expert intervals are on the
-logit coefficient scale, Negative-Binomial expert intervals are on the
-log mean scale, and Negative-Binomial `theta` intervals are nuisance
-diagnostics.
+For `engine = "joint_path_em"`, the covariance follows the JASA observed
+local-likelihood asymptotic sandwich plug-in. It does not include
+shared-path, label-selection, or finite-grid cross-grid responsibility
+uncertainty. Joint-path convergence and the returned score-imbalance
+diagnostics should therefore be inspected. The returned metadata
+identifies the covariance target, estimator/covariance match, omitted
+uncertainty, and coverage-theory scope; no bias or boundary correction
+is applied.
 
 </div>
 

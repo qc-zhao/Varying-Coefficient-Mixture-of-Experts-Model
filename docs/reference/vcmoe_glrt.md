@@ -1,11 +1,10 @@
 <div id="main" class="col-md-9" role="main">
 
-# Coefficient-specific GLRT for VCMoE coefficient variation
+# Generalized likelihood-ratio test for VCMoE coefficient variation
 
 <div class="ref-description section level2">
 
-Fits a constrained null under the same local objective and computes a
-generalized likelihood-ratio statistic against the supplied VCMoE fit.
+Generalized likelihood-ratio test for VCMoE coefficient variation
 
 </div>
 
@@ -19,11 +18,11 @@ generalized likelihood-ratio statistic against the supplied VCMoE fit.
 vcmoe_glrt(
   fit,
   data,
-  test = c("coefficient", "constant_all"),
+  test = c("coefficient", "constant_block", "constant_all"),
   coefficient_set = c("expert", "gating", "sigma", "theta"),
   component = NULL,
   term = NULL,
-  calibration = c("analytic_epanechnikov", "bootstrap", "both", "none",
+  calibration = c("none", "bootstrap", "analytic_epanechnikov", "both",
     "parametric_bootstrap"),
   B = 200L,
   seed = NULL,
@@ -52,11 +51,12 @@ vcmoe_glrt(
 -   test:
 
     Test type. `"coefficient"` tests one coefficient function;
+    `"constant_block"` tests all expert or gating functions jointly;
     `"constant_all"` tests all fitted coefficient functions jointly.
 
 -   coefficient\_set:
 
-    Coefficient block for coefficient-specific tests.
+    Coefficient block for coefficient-specific or block-constant tests.
 
 -   component:
 
@@ -68,11 +68,13 @@ vcmoe_glrt(
 
 -   calibration:
 
-    Calibration method. `"analytic_epanechnikov"` uses the Epanechnikov
-    modified chi-square calibration; `"bootstrap"` uses parametric
-    bootstrap calibration; `"both"` reports both.
-    `"parametric_bootstrap"` is accepted as a backwards-compatible alias
-    for `"bootstrap"`.
+    Calibration method. The default `"none"` returns the statistic
+    without attaching a reference distribution.
+    `"analytic_epanechnikov"` uses the Epanechnikov modified chi-square
+    calibration; `"bootstrap"` uses parametric bootstrap calibration;
+    `"both"` reports both. The analytic calibration is retained as an
+    explicitly requested approximation because the implemented statistic
+    is not identical to the manuscript criterion.
 
 -   B:
 
@@ -84,7 +86,7 @@ vcmoe_glrt(
 
 -   control:
 
-    Controls for the constrained null optimizer.
+    Controls for constrained null optimization and diagnostics.
 
 -   refit\_control:
 
@@ -92,7 +94,7 @@ vcmoe_glrt(
 
 -   verbose:
 
-    Whether to message progress.
+    Whether to message bootstrap progress.
 
 </div>
 
@@ -100,9 +102,7 @@ vcmoe_glrt(
 
 ## Value
 
-A `vcmoe_glrt` object with the observed `lambda`, analytic statistic,
-null fit, optional bootstrap replicate summary, and calibrated p-value
-when available.
+A `vcmoe_glrt` object.
 
 </div>
 
@@ -110,25 +110,16 @@ when available.
 
 ## Details
 
-The primary path is coefficient-specific. The selected coefficient
-function is constrained to be constant in `u`: its local-linear slope is
-fixed to zero and its intercept is shared across grid points. The null
-is re-optimized rather than obtained by post-hoc averaging.
-
-Analytic Epanechnikov calibration requires Epanechnikov density weights,
-scaled local-linear basis, and unit-scaled `u`. It reports
-`lambda = ell_full - ell_null`, `analytic_statistic = rK * lambda`, and
-a modified chi-square `analytic_p_value`. The diagnostic
-`lrt_statistic = 2 * lambda` is reported separately and is not used for
-the analytic p-value. Ridge penalties may be used to stabilize fitting
-but are excluded from the GLRT likelihood ratio.
-
-`vcmoe_glrt()` supports fitted `k = 2:10` models for both
-coefficient-specific and `"constant_all"` nulls. For `k > 2`, gating
-coefficient tests use identifiable baseline contrasts, e.g.
-`component3_vs_component1`. Reported p-values should be interpreted
-together with fit convergence, label ambiguity, component proportion,
-and null-optimizer diagnostics.
+Local-grid fits retain the 0.1.0 constrained BFGS null optimizer.
+Joint-path fits use a paper-inspired sample-weighted grid-projected
+null: after every M-step, each constrained coefficient path is replaced
+by its mean weighted by the number of observations assigned to each
+nearest grid point, and constrained local slopes are set to zero. Its
+statistic compares sample-level likelihood contributions evaluated at
+each observation's nearest grid point. The projected update is not a
+generic constrained optimizer and its diagnostic likelihood trace need
+not be monotone. Bootstrap calibration preserves both the full-fit
+engine and its matching null engine.
 
 </div>
 

@@ -9,4 +9,5 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
 ^\.gitignore$
+^\.git$
 (^|/)\\.DS_Store$

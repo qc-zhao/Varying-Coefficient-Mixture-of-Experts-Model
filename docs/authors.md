@@ -8,6 +8,10 @@
 
 -   **Qicheng Zhao**. Author, maintainer.
 
+-   **Celia M.T. Greenwood**. Author.
+
+-   **Qihuang Zhang**. Author.
+
 </div>
 
 <div class="section level2">

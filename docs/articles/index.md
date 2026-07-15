@@ -16,6 +16,8 @@
     Tutorial](https://qc-zhao.github.io/VCMoE/articles/vcmoe-binomial.md):
 -   [Negative-Binomial VCMoE
     Tutorial](https://qc-zhao.github.io/VCMoE/articles/vcmoe-negbin.md):
+-   [Joint-Path
+    EM](https://qc-zhao.github.io/VCMoE/articles/vcmoe-joint-path.md):
 
 </div>
 

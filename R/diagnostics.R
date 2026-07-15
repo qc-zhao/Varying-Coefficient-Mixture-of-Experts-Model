@@ -203,6 +203,7 @@ vcmoe_diagnostics <- function(object) {
   out <- data.frame(
     grid_id = seq_len(n_grid),
     u = object$u_grid,
+    engine_id = object$engine_id %||% "local_grid_em",
     family = object$family,
     k = object$k,
     bandwidth = object$bandwidth,

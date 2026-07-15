@@ -370,6 +370,16 @@
   scores
 }
 
+.vcmoe_dev_score_balance <- function(score) {
+  score_sum <- colSums(score)
+  score_scale <- sqrt(colSums(score^2))
+  standardized <- abs(score_sum) / pmax(score_scale, sqrt(.Machine$double.eps))
+  list(
+    score_sum_max = max(abs(score_sum)),
+    score_imbalance_max = max(standardized)
+  )
+}
+
 .vcmoe_dev_hessian <- function(par, spec, eps = 1e-4) {
   d <- length(par)
   objective <- function(x) {
@@ -460,6 +470,7 @@
   if (inherits(score, "error") || any(!is.finite(score))) {
     return(list(status = "blocked", block_reason = "nonfinite_score", parameter = par, spec = spec))
   }
+  score_balance <- .vcmoe_dev_score_balance(score)
   bread <- tryCatch(.vcmoe_dev_hessian(par, spec, control$hessian_eps), error = function(e) e)
   if (inherits(bread, "error") || any(!is.finite(bread))) {
     return(list(status = "blocked", block_reason = "nonfinite_bread", parameter = par, spec = spec,
@@ -527,7 +538,9 @@
     covariance_factor = adjusted$covariance_factor,
     local_effective_n = adjusted$local_effective_n,
     leverage_mean = adjusted$leverage_mean,
-    leverage_max = adjusted$leverage_max
+    leverage_max = adjusted$leverage_max,
+    score_sum_max = score_balance$score_sum_max,
+    score_imbalance_max = score_balance$score_imbalance_max
   )
 }
 
@@ -669,7 +682,33 @@
 .vcmoe_dev_interval_metadata <- function(spec, control, simultaneous_critical,
                                          analytic_meta = NULL) {
   is_analytic <- identical(control$simultaneous_method, "analytic_epanechnikov_path")
+  engine_id <- spec$fit$engine_id %||% "local_grid_em"
+  joint_path <- identical(engine_id, "joint_path_em")
   data.frame(
+    engine_id = engine_id,
+    estimating_equation = if (joint_path) {
+      "jasa_observed_local_likelihood_plugin"
+    } else {
+      "observed_local_likelihood"
+    },
+    covariance_scope = if (joint_path) {
+      "local_asymptotic_plugin_excludes_finite_grid_cross_grid_coupling"
+    } else {
+      "local_sandwich"
+    },
+    covariance_target = "observed_local_marginal_likelihood",
+    estimator_covariance_match = if (joint_path) {
+      "asymptotic_plugin_not_exact_finite_grid_match"
+    } else {
+      "matched_when_local_fit_converged_and_penalty_negligible"
+    },
+    shared_path_uncertainty_accounted = FALSE,
+    label_uncertainty_accounted = FALSE,
+    coverage_theory = if (joint_path) {
+      "local_likelihood_asymptotic_plugin_not_finite_grid_joint_path_theory"
+    } else {
+      "local_likelihood_asymptotic_with_bias_and_boundary_caveats"
+    },
     parameterization = spec$estimation_spec$id,
     kernel = spec$estimation_spec$kernel,
     weight_normalization = if (identical(spec$estimation_spec$weight_normalization, "density")) {
@@ -735,6 +774,8 @@
     local_effective_n = diagnostic$local_effective_n %||% NA_real_,
     leverage_mean = diagnostic$leverage_mean %||% NA_real_,
     leverage_max = diagnostic$leverage_max %||% NA_real_,
+    score_sum_max = diagnostic$score_sum_max %||% NA_real_,
+    score_imbalance_max = diagnostic$score_imbalance_max %||% NA_real_,
     stringsAsFactors = FALSE
   )
   .vcmoe_dev_add_interval_metadata(rows, spec, control, NA_real_, analytic_meta)
@@ -772,6 +813,7 @@
         hessian_condition = NA_real_, min_eigenvalue = NA_real_,
         covariance_factor = NA_real_, local_effective_n = NA_real_,
         leverage_mean = NA_real_, leverage_max = NA_real_,
+        score_sum_max = NA_real_, score_imbalance_max = NA_real_,
         simultaneous_method = control$simultaneous_method,
         covariance_adjustment = control$covariance_adjustment,
         simultaneous_critical = if (is.null(analytic_meta)) NA_real_ else analytic_meta$critical,
@@ -795,6 +837,8 @@
         local_effective_n = sh$local_effective_n %||% NA_real_,
         leverage_mean = sh$leverage_mean %||% NA_real_,
         leverage_max = sh$leverage_max %||% NA_real_,
+        score_sum_max = sh$score_sum_max %||% NA_real_,
+        score_imbalance_max = sh$score_imbalance_max %||% NA_real_,
         simultaneous_method = control$simultaneous_method,
         covariance_adjustment = control$covariance_adjustment,
         simultaneous_critical = if (is.null(analytic_meta)) NA_real_ else analytic_meta$critical,
@@ -833,21 +877,24 @@
       simultaneous_lower = if (is.finite(multiplier)) as.numeric(sh$parameter) - multiplier * se else NA_real_,
       simultaneous_upper = if (is.finite(multiplier)) as.numeric(sh$parameter) + multiplier * se else NA_real_,
       level = level,
-      status = "ok",
-      block_reason = NA_character_,
+      status = if (nzchar(pre_reason)) "warning" else "ok",
+      block_reason = if (nzchar(pre_reason)) pre_reason else NA_character_,
       hessian_condition = sh$condition,
       min_eigenvalue = sh$min_eigenvalue,
       covariance_factor = sh$covariance_factor %||% NA_real_,
       local_effective_n = sh$local_effective_n %||% NA_real_,
       leverage_mean = sh$leverage_mean %||% NA_real_,
       leverage_max = sh$leverage_max %||% NA_real_,
+      score_sum_max = sh$score_sum_max %||% NA_real_,
+      score_imbalance_max = sh$score_imbalance_max %||% NA_real_,
       stringsAsFactors = FALSE
     )
     interval_rows[[grid_id]] <- .vcmoe_dev_add_interval_metadata(
       rows, spec, control, multiplier, analytic_meta
     )
     diagnostic_rows[[grid_id]] <- data.frame(
-      grid_id = grid_id, u = fit$u_grid[[grid_id]], status = "ok",
+      grid_id = grid_id, u = fit$u_grid[[grid_id]],
+      status = if (nzchar(pre_reason)) "warning" else "ok",
       block_reason = if (nzchar(pre_reason)) pre_reason else NA_character_,
       parameter_count = length(par),
       hessian_condition = sh$condition,
@@ -856,6 +903,8 @@
       local_effective_n = sh$local_effective_n %||% NA_real_,
       leverage_mean = sh$leverage_mean %||% NA_real_,
       leverage_max = sh$leverage_max %||% NA_real_,
+      score_sum_max = sh$score_sum_max %||% NA_real_,
+      score_imbalance_max = sh$score_imbalance_max %||% NA_real_,
       simultaneous_method = control$simultaneous_method,
       covariance_adjustment = control$covariance_adjustment,
       simultaneous_critical = multiplier,
